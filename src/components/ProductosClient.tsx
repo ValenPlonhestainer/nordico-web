@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useProducts } from '@/hooks/useProducts'
+import { useBaldosas } from '@/hooks/useBaldosas'
 import Footer from '@/components/Footer'
 import SectionDivider from '@/components/SectionDivider'
 
@@ -46,6 +47,7 @@ function renderName(name: string) {
 
 export default function ProductosClient() {
   const products = useProducts()
+  const baldosas = useBaldosas()
 
   return (
     <div id="catalogo">
@@ -133,11 +135,30 @@ export default function ProductosClient() {
           <div className="catalog-header-sub">Nueva línea de productos</div>
         </div>
       </div>
-      <div className="catalog-coming-soon">
-        <div className="coming-soon-badge">En desarrollo</div>
-        <div className="coming-soon-title">PRÓXIMAMENTE</div>
-        <div className="coming-soon-text">Estamos preparando nuestra línea de baldosas. Pronto vas a poder ver todos los modelos disponibles.</div>
-      </div>
+      {baldosas.length > 0 ? (
+        <div className="products-grid">
+          {baldosas.map(product => (
+            <div className="product-card" key={product.key} data-product-key={product.key}>
+              <div className="product-thumb">
+                <CardSlider images={product.images} alt={product.name} />
+              </div>
+              <div className="product-info">
+                <div className="product-name">{renderName(product.name)}</div>
+                <div className="product-meta">
+                  <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>c/u</span></div>
+                  {product.tag && <div className="tag-pill">{product.tag}</div>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="catalog-coming-soon">
+          <div className="coming-soon-badge">En desarrollo</div>
+          <div className="coming-soon-title">PRÓXIMAMENTE</div>
+          <div className="coming-soon-text">Estamos preparando nuestra línea de baldosas. Pronto vas a poder ver todos los modelos disponibles.</div>
+        </div>
+      )}
 
       <SectionDivider />
 
