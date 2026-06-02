@@ -10,7 +10,7 @@ export function useProducts() {
 
     supabase
       .from('products')
-      .select('key, name, price_unit, tag, order')
+      .select('key, name, price_unit, tag, order, images')
       .order('order', { ascending: true })
       .then(({ data, error }) => {
         if (error || !data || data.length === 0) return
@@ -21,7 +21,7 @@ export function useProducts() {
               key: p.key,
               name: local?.name ?? p.name,
               priceUnit: p.price_unit,
-              images: local?.images ?? [],
+              images: (p.images && p.images.length > 0) ? p.images : (local?.images ?? []),
               tag: p.tag ?? undefined,
             }
           })
