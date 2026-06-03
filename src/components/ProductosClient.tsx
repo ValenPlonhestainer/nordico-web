@@ -5,13 +5,14 @@ import { useProducts } from '@/hooks/useProducts'
 import { useBaldosas } from '@/hooks/useBaldosas'
 import Footer from '@/components/Footer'
 import SectionDivider from '@/components/SectionDivider'
+import Lightbox from '@/components/Lightbox'
 
-function CardSlider({ images, alt }: { images: string[]; alt: string }) {
+function CardSlider({ images, alt, onImageClick }: { images: string[]; alt: string; onImageClick?: (index: number) => void }) {
   const [index, setIndex] = useState(0)
   const goTo = (i: number) => setIndex((i + images.length) % images.length)
 
   return (
-    <div className="card-slider">
+    <div className="card-slider" onClick={() => onImageClick?.(index)} style={{ cursor: onImageClick ? 'zoom-in' : undefined }}>
       <div className="card-slider-track" style={{ transform: `translateX(-${index * 100}%)` }}>
         {images.map((src, i) => (
           <Image
@@ -20,7 +21,7 @@ function CardSlider({ images, alt }: { images: string[]; alt: string }) {
             alt={alt}
             width={600}
             height={450}
-            style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
           />
         ))}
       </div>
@@ -48,6 +49,7 @@ function renderName(name: string) {
 export default function ProductosClient() {
   const products = useProducts()
   const baldosas = useBaldosas()
+  const [lightbox, setLightbox] = useState<{ images: string[]; alt: string; index: number } | null>(null)
 
   return (
     <div id="catalogo">
@@ -112,7 +114,7 @@ export default function ProductosClient() {
         {products.map(product => (
           <div className="product-card" key={product.key} data-product-key={product.key}>
             <div className="product-thumb">
-              <CardSlider images={product.images} alt={product.name} />
+              <CardSlider images={product.images} alt={product.name} onImageClick={i => setLightbox({ images: product.images, alt: product.name, index: i })} />
             </div>
             <div className="product-info">
               <div className="product-name">{renderName(product.name)}</div>
@@ -140,7 +142,7 @@ export default function ProductosClient() {
           {baldosas.map(product => (
             <div className="product-card" key={product.key} data-product-key={product.key}>
               <div className="product-thumb">
-                <CardSlider images={product.images} alt={product.name} />
+                <CardSlider images={product.images} alt={product.name} onImageClick={i => setLightbox({ images: product.images, alt: product.name, index: i })} />
               </div>
               <div className="product-info">
                 <div className="product-name">{renderName(product.name)}</div>
@@ -177,6 +179,15 @@ export default function ProductosClient() {
       </div>
 
       <Footer />
+
+      {lightbox && (
+        <Lightbox
+          images={lightbox.images}
+          initialIndex={lightbox.index}
+          alt={lightbox.alt}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   )
 }

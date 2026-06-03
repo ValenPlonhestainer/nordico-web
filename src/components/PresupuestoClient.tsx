@@ -3,6 +3,8 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useProducts } from '@/hooks/useProducts'
 import { useServices } from '@/hooks/useServices'
+import { useBaldosas } from '@/hooks/useBaldosas'
+import Lightbox from '@/components/Lightbox'
 
 function renderName(name: string) {
   const match = name.match(/^(.*?)(\d+X\d+)$/)
@@ -15,7 +17,11 @@ const fmt = (n: number) =>
 
 export default function PresupuestoClient() {
   const products = useProducts()
+  const baldosas = useBaldosas()
   const services = useServices()
+
+  const allProducts = [...products, ...baldosas]
+
   const [selectedKey, setSelectedKey] = useState('solarium')
   const [qty, setQty] = useState(1)
   const [qtyInput, setQtyInput] = useState('1')
@@ -27,8 +33,13 @@ export default function PresupuestoClient() {
   const [province, setProvince] = useState('San Luis')
   const [showErrors, setShowErrors] = useState(false)
   const [showToast, setShowToast] = useState(false)
+  const [lightbox, setLightbox] = useState<{ images: string[]; alt: string } | null>(null)
 
-  const selectedProduct = products.find(p => p.key === selectedKey) ?? products[0]
+  const selectedProduct = allProducts.find(p => p.key === selectedKey) ?? products[0]
+  const isLoseta = products.some(p => p.key === selectedKey)
+  const categoryLabel = isLoseta ? 'LOSETAS' : 'BALDOSAS'
+  const categoryMsg   = isLoseta ? 'Losetas' : 'Baldosas'
+
   const tileCost = qty * selectedProduct.priceUnit
 
   const servicesCost = services.reduce((acc, svc) => {
@@ -79,7 +90,7 @@ export default function PresupuestoClient() {
     lines.push('🪨 *Detalle del presupuesto*')
     lines.push(`Producto: ${selectedProduct.name}`)
     lines.push(`Cantidad: ${qty} ${qty === 1 ? 'unidad' : 'unidades'}`)
-    lines.push(`Losetas: ${fmt(tileCost)}`)
+    lines.push(`${categoryMsg}: ${fmt(tileCost)}`)
     services.forEach(svc => {
       if (checkedServices[svc.id])
         lines.push(`${svc.label}: ${fmt(svc.type === 'unit' ? qty * svc.price : svc.price)}`)
@@ -107,7 +118,7 @@ export default function PresupuestoClient() {
           <div className="form-section">
             <div className="form-section-header">
               <div className="form-section-num">1</div>
-              <div className="form-section-title">CANTIDAD DE LOSETAS</div>
+              <div className="form-section-title">CANTIDAD DE UNIDADES</div>
             </div>
             <div className="form-row" style={{ gridTemplateColumns: '1fr' }}>
               <div className="form-group">
@@ -136,6 +147,8 @@ export default function PresupuestoClient() {
               <div className="form-section-num">2</div>
               <div className="form-section-title">ELEGÍ TU MODELO</div>
             </div>
+
+            <div className="section-eyebrow" style={{ marginBottom: '12px' }}>// Losetas Atérmicas</div>
             <div className="tile-options">
               {products.map(product => (
                 <div
@@ -145,7 +158,11 @@ export default function PresupuestoClient() {
                   onClick={() => setSelectedKey(product.key)}
                 >
                   <div className="check-mark">✓</div>
-                  <div className="tile-option-thumb">
+                  <div
+                    className="tile-option-thumb"
+                    style={{ cursor: 'zoom-in' }}
+                    onClick={e => { e.stopPropagation(); setSelectedKey(product.key); setLightbox({ images: product.images.filter(Boolean), alt: product.name }) }}
+                  >
                     <Image
                       src={product.images[0]}
                       alt={product.name}
@@ -159,6 +176,39 @@ export default function PresupuestoClient() {
                 </div>
               ))}
             </div>
+
+            {baldosas.length > 0 && (
+              <>
+                <div className="section-eyebrow" style={{ marginTop: '28px', marginBottom: '12px' }}>// Baldosas</div>
+                <div className="tile-options">
+                  {baldosas.map(product => (
+                    <div
+                      key={product.key}
+                      className={`tile-option${selectedKey === product.key ? ' selected' : ''}`}
+                      data-product-key={product.key}
+                      onClick={() => setSelectedKey(product.key)}
+                    >
+                      <div className="check-mark">✓</div>
+                      <div
+                        className="tile-option-thumb"
+                        style={{ cursor: 'zoom-in' }}
+                        onClick={e => { e.stopPropagation(); setSelectedKey(product.key); setLightbox({ images: product.images.filter(Boolean), alt: product.name }) }}
+                      >
+                        <Image
+                          src={product.images[0]}
+                          alt={product.name}
+                          width={200}
+                          height={150}
+                          style={{ width: '100%', height: 'auto', display: 'block' }}
+                        />
+                      </div>
+                      <div className="tile-option-name">{renderName(product.name)}</div>
+                      <div className="tile-option-price">${product.priceUnit.toLocaleString('es-AR')} <span>c/u</span></div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* 3. Servicios */}
@@ -253,7 +303,7 @@ export default function PresupuestoClient() {
             <span className="value orange">{qty.toLocaleString('es-AR')} {qty === 1 ? 'unidad' : 'unidades'}</span>
           </div>
           <div className="summary-row">
-            <span className="label">LOSETAS</span>
+            <span className="label">{categoryLabel}</span>
             <span className="value">{fmt(tileCost)}</span>
           </div>
 
@@ -289,6 +339,13 @@ export default function PresupuestoClient() {
         </div>
 
       </div>
+      {lightbox && (
+        <Lightbox
+          images={lightbox.images}
+          alt={lightbox.alt}
+          onClose={() => setLightbox(null)}
+        />
+      )}
       {showToast && (
         <div className="quote-toast">
           <span className="quote-toast-icon">⚠</span>
