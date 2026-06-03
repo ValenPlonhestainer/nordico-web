@@ -1,9 +1,16 @@
+export interface ColorVariant {
+  name: string
+  color: string
+  images: string[]
+}
+
 export interface Product {
   key: string
   name: string
   priceUnit: number
   images: string[]
   tag?: string
+  variants?: ColorVariant[]
 }
 
 export interface Service {

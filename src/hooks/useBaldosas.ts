@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import type { Product } from '../config/products'
+import type { Product, ColorVariant } from '../config/products'
 
 export function useBaldosas() {
   const [baldosas, setBaldosas] = useState<Product[]>([])
@@ -10,7 +10,7 @@ export function useBaldosas() {
 
     supabase
       .from('baldosas')
-      .select('key, name, price_unit, tag, order, images')
+      .select('key, name, price_unit, tag, order, images, variants')
       .order('order', { ascending: true })
       .then(({ data, error }) => {
         if (error || !data) return
@@ -21,6 +21,7 @@ export function useBaldosas() {
             priceUnit: p.price_unit,
             images: p.images ?? [],
             tag: p.tag ?? undefined,
+            variants: (p.variants ?? []) as ColorVariant[],
           }))
         )
       })

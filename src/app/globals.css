@@ -861,7 +861,6 @@ nav {
   overflow: hidden;
 }
 
-.product-card:hover { background: var(--dark2); }
 
 .product-thumb { background: var(--dark3); overflow: hidden; }
 
@@ -890,7 +889,6 @@ nav {
   transition: filter 0.4s;
 }
 
-.product-card:hover .card-slider-track img { filter: grayscale(60%) contrast(1.1); }
 
 .card-slider-btn {
   position: absolute;
@@ -1385,6 +1383,30 @@ nav {
 }
 
 .service-price { color: var(--gray); }
+
+/* Variantes de color en cards de baldosas */
+.color-swatches {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 4px;
+  flex-wrap: wrap;
+}
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  outline: 2px solid rgba(255,255,255,0.10);
+  outline-offset: 1px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.color-swatch.active,
+.color-swatch:hover {
+  border-color: var(--orange);
+  transform: scale(1.18);
+}
 
 /* Opciones de loseta */
 .tile-options {

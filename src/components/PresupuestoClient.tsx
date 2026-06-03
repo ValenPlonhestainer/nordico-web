@@ -4,7 +4,6 @@ import Image from 'next/image'
 import { useProducts } from '@/hooks/useProducts'
 import { useServices } from '@/hooks/useServices'
 import { useBaldosas } from '@/hooks/useBaldosas'
-import Lightbox from '@/components/Lightbox'
 
 function renderName(name: string) {
   const match = name.match(/^(.*?)(\d+X\d+)$/)
@@ -33,7 +32,6 @@ export default function PresupuestoClient() {
   const [province, setProvince] = useState('San Luis')
   const [showErrors, setShowErrors] = useState(false)
   const [showToast, setShowToast] = useState(false)
-  const [lightbox, setLightbox] = useState<{ images: string[]; alt: string } | null>(null)
 
   const selectedProduct = allProducts.find(p => p.key === selectedKey) ?? products[0]
   const isLoseta = products.some(p => p.key === selectedKey)
@@ -158,11 +156,7 @@ export default function PresupuestoClient() {
                   onClick={() => setSelectedKey(product.key)}
                 >
                   <div className="check-mark">✓</div>
-                  <div
-                    className="tile-option-thumb"
-                    style={{ cursor: 'zoom-in' }}
-                    onClick={e => { e.stopPropagation(); setSelectedKey(product.key); setLightbox({ images: product.images.filter(Boolean), alt: product.name }) }}
-                  >
+                  <div className="tile-option-thumb">
                     <Image
                       src={product.images[0]}
                       alt={product.name}
@@ -189,11 +183,7 @@ export default function PresupuestoClient() {
                       onClick={() => setSelectedKey(product.key)}
                     >
                       <div className="check-mark">✓</div>
-                      <div
-                        className="tile-option-thumb"
-                        style={{ cursor: 'zoom-in' }}
-                        onClick={e => { e.stopPropagation(); setSelectedKey(product.key); setLightbox({ images: product.images.filter(Boolean), alt: product.name }) }}
-                      >
+                      <div className="tile-option-thumb">
                         <Image
                           src={product.images[0]}
                           alt={product.name}
@@ -203,7 +193,7 @@ export default function PresupuestoClient() {
                         />
                       </div>
                       <div className="tile-option-name">{renderName(product.name)}</div>
-                      <div className="tile-option-price">${product.priceUnit.toLocaleString('es-AR')} <span>c/u</span></div>
+                      <div className="tile-option-price">${product.priceUnit.toLocaleString('es-AR')} <span>m2</span></div>
                     </div>
                   ))}
                 </div>
@@ -339,13 +329,6 @@ export default function PresupuestoClient() {
         </div>
 
       </div>
-      {lightbox && (
-        <Lightbox
-          images={lightbox.images}
-          alt={lightbox.alt}
-          onClose={() => setLightbox(null)}
-        />
-      )}
       {showToast && (
         <div className="quote-toast">
           <span className="quote-toast-icon">⚠</span>

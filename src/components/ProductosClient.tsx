@@ -50,6 +50,7 @@ export default function ProductosClient() {
   const products = useProducts()
   const baldosas = useBaldosas()
   const [lightbox, setLightbox] = useState<{ images: string[]; alt: string; index: number } | null>(null)
+  const [selectedVariant, setSelectedVariant] = useState<Record<string, number>>({})
 
   return (
     <div id="catalogo">
@@ -139,20 +140,49 @@ export default function ProductosClient() {
       </div>
       {baldosas.length > 0 ? (
         <div className="products-grid">
-          {baldosas.map(product => (
-            <div className="product-card" key={product.key} data-product-key={product.key}>
-              <div className="product-thumb">
-                <CardSlider images={product.images} alt={product.name} onImageClick={i => setLightbox({ images: product.images, alt: product.name, index: i })} />
-              </div>
-              <div className="product-info">
-                <div className="product-name">{renderName(product.name)}</div>
-                <div className="product-meta">
-                  <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>c/u</span></div>
-                  {product.tag && <div className="tag-pill">{product.tag}</div>}
+          {baldosas.map(product => {
+            const selectedIdx = selectedVariant[product.key] // undefined = sin selección, muestra imagen base
+            const currentVariant = selectedIdx !== undefined ? product.variants?.[selectedIdx] : null
+            const displayImages = currentVariant?.images?.length ? currentVariant.images : product.images
+            return (
+              <div className="product-card" key={product.key} data-product-key={product.key}>
+                <div className="product-thumb">
+                  <CardSlider images={displayImages} alt={product.name} onImageClick={i => setLightbox({ images: displayImages, alt: product.name, index: i })} />
+                </div>
+                {product.variants && product.variants.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', padding: '10px 16px 4px', flexWrap: 'wrap' }}>
+                    {product.variants.map((v, i) => (
+                      <button
+                        key={i}
+                        title={v.name}
+                        onClick={e => { e.stopPropagation(); setSelectedVariant(prev => { if (prev[product.key] === i) { const next = { ...prev }; delete next[product.key]; return next } return { ...prev, [product.key]: i } }) }}
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '50%',
+                          background: v.color,
+                          border: selectedIdx === i ? '2px solid #E8521A' : '2px solid transparent',
+                          outline: '2px solid rgba(255,255,255,0.15)',
+                          outlineOffset: '1px',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          transition: 'border-color 0.15s, transform 0.15s',
+                          transform: selectedIdx === i ? 'scale(1.18)' : 'scale(1)',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div className="product-info">
+                  <div className="product-name">{renderName(product.name)}</div>
+                  <div className="product-meta">
+                    <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>m2</span></div>
+                    {product.tag && <div className="tag-pill">{product.tag}</div>}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <div className="catalog-coming-soon">
