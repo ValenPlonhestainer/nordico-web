@@ -1,11 +1,52 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
 import { useProducts } from '@/hooks/useProducts'
 import { useBaldosas } from '@/hooks/useBaldosas'
 import Footer from '@/components/Footer'
 import SectionDivider from '@/components/SectionDivider'
 import Lightbox from '@/components/Lightbox'
+
+function BeforeAfterSlider({ before, after }: { before: string; after: string }) {
+  const [position, setPosition] = useState(50)
+  const [dragging, setDragging] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const move = (clientX: number) => {
+    if (!ref.current) return
+    const { left, width } = ref.current.getBoundingClientRect()
+    setPosition(Math.min(100, Math.max(0, ((clientX - left) / width) * 100)))
+  }
+
+  return (
+    <div
+      ref={ref}
+      style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', cursor: 'ew-resize', userSelect: 'none' }}
+      onMouseMove={e => { if (dragging) move(e.clientX) }}
+      onMouseUp={() => setDragging(false)}
+      onMouseLeave={() => setDragging(false)}
+      onTouchMove={e => move(e.touches[0].clientX)}
+      onTouchEnd={() => setDragging(false)}
+    >
+      <Image src={before} alt="Antes de Nordico" fill sizes="50vw" style={{ objectFit: 'cover' }} priority />
+      <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 0 0 ${position}%)` }}>
+        <Image src={after} alt="Después con Nordico" fill sizes="50vw" style={{ objectFit: 'cover' }} priority />
+      </div>
+      <div style={{ position: 'absolute', top: '20px', left: '20px', fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)', padding: '5px 12px' }}>ANTES</div>
+      <div style={{ position: 'absolute', top: '20px', right: '20px', fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--orange)', border: '1px solid rgba(232,82,26,0.5)', background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)', padding: '5px 12px' }}>DESPUÉS</div>
+      <div
+        style={{ position: 'absolute', top: 0, bottom: 0, left: `${position}%`, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}
+        onMouseDown={e => { e.preventDefault(); setDragging(true) }}
+        onTouchStart={() => setDragging(true)}
+      >
+        <div style={{ width: '2px', height: '100%', background: 'rgba(255,255,255,0.6)' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '44px', height: '44px', background: 'var(--orange)', border: '2px solid rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'ew-resize' }}>
+          <div style={{ transform: 'rotate(-45deg)', color: 'white', fontSize: '15px', fontWeight: 700, lineHeight: 1 }}>↔</div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function CardSlider({ images, alt, onImageClick }: { images: string[]; alt: string; onImageClick?: (index: number) => void }) {
   const [index, setIndex] = useState(0)
@@ -55,49 +96,38 @@ export default function ProductosClient() {
   return (
     <div id="catalogo">
 
-      {/* Hero */}
+      {/* Hero — sin imagen */}
       <div className="hero">
-        <div className="hero-content">
-          <div className="hero-tag fade-up">// SOLUCIONES TÉRMICAS</div>
-          <h1 className="hero-title fade-up-2">
-            Colecciones<br />de Losetas<br /><span>Nordico</span>
-          </h1>
-          <p className="hero-body fade-up-3">
-            Nuestra tecnología térmica asegura superficies siempre frescas, incluso bajo el sol más intenso.
-          </p>
-          <div className="hero-actions fade-up-4">
-            <a className="btn-primary" href="#catalogo-grid">VER MUESTRAS</a>
+        <div className="hero-content" style={{ position: 'relative', overflow: 'hidden' }}>
+          {/* Rombos concéntricos decorativos — fondo */}
+          <div style={{ position: 'absolute', right: '-40px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 0 }}>
+            <div style={{ width: '340px', height: '340px', border: '1px solid rgba(232,82,26,0.1)', transform: 'rotate(45deg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '240px', height: '240px', border: '1px solid rgba(232,82,26,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '120px', height: '120px', border: '1px solid rgba(232,82,26,0.1)', background: 'rgba(232,82,26,0.03)' }} />
+              </div>
+            </div>
+          </div>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div className="hero-tag fade-up">{'// SOLUCIONES TÉRMICAS'}</div>
+            <h1 className="hero-title fade-up-2">
+              Colecciones<br />de Losetas<br /><span>Nordico</span>
+            </h1>
+            <div className="fade-up-3" style={{ width: '48px', height: '2px', background: 'var(--orange)', marginBottom: '28px' }} />
+            <p className="hero-body fade-up-3">
+              Tecnología atérmica que mantiene tus superficies frescas, incluso bajo el sol más intenso.
+            </p>
+            <div className="fade-up-4" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '32px' }}>
+              {['100% Atérmico', 'Antideslizante', 'Resistente al cloro'].map(f => (
+                <span key={f} className="hero-feature-tag">{f}</span>
+              ))}
+            </div>
+            <div className="hero-actions fade-up-4">
+              <a className="btn-primary" href="#catalogo-grid">VER MUESTRAS</a>
+            </div>
           </div>
         </div>
-
         <div className="hero-image">
-          <div style={{ width: '100%', height: '100%', background: '#141414', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-            <div style={{ position: 'absolute', width: '140%', height: '1px', background: 'rgba(232,82,26,0.15)', top: '50%', left: '-20%', transform: 'rotate(-45deg)' }} />
-            <div style={{ position: 'absolute', inset: '6%', background: 'rgba(20,20,20,0.92)', border: '1px solid rgba(255,255,255,0.05)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', padding: '10px', alignItems: 'center', overflow: 'hidden' }}>
-              <Image
-                src="/img/Piletas 1.jpg"
-                alt="Losetas Nordico colocadas alrededor de piscina"
-                width={600}
-                height={400}
-                className="hero-product-img"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                priority
-              />
-              <Image
-                src="/img/Piletas 2.jpg"
-                alt="Solarium atérmico Nordico en pileta residencial"
-                width={600}
-                height={400}
-                className="hero-product-img-alt"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                priority
-              />
-            </div>
-            <div className="hero-image-overlay">
-              <div className="iso-badge">MATERIA PRIMA DE PRIMERA CALIDAD</div>
-            </div>
-          </div>
+          <BeforeAfterSlider before="/img/Antes.png" after="/img/Despues.png" />
         </div>
       </div>
 
@@ -108,7 +138,9 @@ export default function ProductosClient() {
         <div>
           <div className="section-eyebrow">// Losetas Atérmicas</div>
           <div className="catalog-header-title">CATÁLOGO DE LOSETAS</div>
-          <div className="catalog-header-sub">Modelos diseñados para resistir climas extremos</div>
+          <div style={{ marginTop: '12px', fontSize: '12px', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', fontWeight: 500 }}>
+            * Imágenes de carácter ilustrativo
+          </div>
         </div>
       </div>
       <div className="products-grid">
@@ -135,7 +167,10 @@ export default function ProductosClient() {
         <div>
           <div className="section-eyebrow">// Baldosas</div>
           <div className="catalog-header-title">CATÁLOGO DE BALDOSAS</div>
-          <div className="catalog-header-sub">Nueva línea de productos</div>
+
+          <div style={{ marginTop: '12px', fontSize: '12px', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', fontWeight: 500 }}>
+            * Imágenes de carácter ilustrativo
+          </div>
         </div>
       </div>
       {baldosas.length > 0 ? (
@@ -150,7 +185,7 @@ export default function ProductosClient() {
                   <CardSlider images={displayImages} alt={product.name} onImageClick={i => setLightbox({ images: displayImages, alt: product.name, index: i })} />
                 </div>
                 {product.variants && product.variants.length > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', padding: '10px 16px 4px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '8px', padding: '10px 16px 4px', flexWrap: 'wrap', justifyContent: 'center' }}>
                     {product.variants.map((v, i) => (
                       <button
                         key={i}
@@ -176,7 +211,14 @@ export default function ProductosClient() {
                 <div className="product-info">
                   <div className="product-name">{renderName(product.name)}</div>
                   <div className="product-meta">
-                    <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>m2</span></div>
+                    {currentVariant?.price ? (
+                      <div className="product-price">
+                        ${product.priceUnit.toLocaleString('es-AR')}
+                        <span className="price-additional" style={{ color: 'var(--orange)', fontWeight: 600 }}> + ${currentVariant.price.toLocaleString('es-AR')}</span> <span>m2</span>
+                      </div>
+                    ) : (
+                      <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>m2</span></div>
+                    )}
                     {product.tag && <div className="tag-pill">{product.tag}</div>}
                   </div>
                 </div>
@@ -199,7 +241,7 @@ export default function ProductosClient() {
         <div>
           <div className="section-eyebrow">// Revestimientos</div>
           <div className="catalog-header-title">CATÁLOGO DE REVESTIMIENTOS</div>
-          <div className="catalog-header-sub">Nueva línea de productos</div>
+
         </div>
       </div>
       <div className="catalog-coming-soon">

@@ -4,22 +4,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
 import { StaggerTestimonials } from '@/components/ui/stagger-testimonials'
-import Masonry from '@/components/ui/Masonry'
 import SectionDivider from '@/components/SectionDivider'
-
-const GALLERY_ITEMS = [
-  { id: '1',  img: '/img/Pileta%20Cliente%201.JPG',  height: 400 },
-  { id: '2',  img: '/img/Pileta%20Cliente%202.JPG',  height: 550 },
-  { id: '3',  img: '/img/Pileta%20Cliente%203.JPG',  height: 500 },
-  { id: '4',  img: '/img/Pileta%20Cliente%204.JPG',  height: 350 },
-  { id: '5',  img: '/img/Pileta%20Cliente%205.JPG',  height: 600 },
-  { id: '6',  img: '/img/Pileta%20Cliente%206.JPG',  height: 400 },
-  { id: '7',  img: '/img/Pileta%20Cliente%207.JPG',  height: 500 },
-  { id: '8',  img: '/img/Pileta%20Cliente%208.JPG',  height: 450 },
-  { id: '9',  img: '/img/Pileta%20Cliente%209.JPG',  height: 550 },
-  { id: '10', img: '/img/Pileta%20Cliente%2010.jpg', height: 400 },
-  { id: '11', img: '/img/Pileta%20Cliente%2011.JPG', height: 500 },
-]
+import ImageAutoSlider from '@/components/ui/image-auto-slider'
+import { Tiles } from '@/components/ui/tiles'
 
 function easeOutCubic(t: number) { return 1 - Math.pow(1 - t, 3) }
 
@@ -27,8 +14,6 @@ export default function HomeClient() {
   const statsRef = useRef<HTMLDivElement>(null)
   const [statsTriggered, setStatsTriggered] = useState(false)
   const [statValues, setStatValues] = useState([0, 0, 0, 0])
-  const [galleryIdx, setGalleryIdx] = useState(0)
-  const galleryHoverRef = useRef(false)
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
 
   useEffect(() => {
@@ -59,14 +44,6 @@ export default function HomeClient() {
     }
     requestAnimationFrame(step)
   }, [statsTriggered])
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (!galleryHoverRef.current)
-        setGalleryIdx(i => (i + 1) % GALLERY_ITEMS.length)
-    }, 4000)
-    return () => clearInterval(timer)
-  }, [])
 
   return (
     <div id="home">
@@ -219,64 +196,39 @@ export default function HomeClient() {
 
       <SectionDivider />
 
-      {/* Galería */}
-      <div className="home-gallery-section">
+      {/* Slider automático de trabajos */}
+      <div className="home-interactive-selector">
         <div style={{ marginBottom: '40px' }}>
-          <div className="section-eyebrow">// Galería de trabajos</div>
+          <div className="section-eyebrow">// Proyectos destacados</div>
           <div className="section-title" style={{ marginBottom: 0 }}>
-            TRABAJOS <span style={{ color: 'var(--orange)' }}>REALIZADOS</span>
+            CONOCÉ NUESTROS <span style={{ color: 'var(--orange)' }}>TRABAJOS</span>
           </div>
         </div>
-        <div className="home-gallery-masonry">
-          <Masonry
-            items={GALLERY_ITEMS}
-            ease="power3.out"
-            duration={0.6}
-            stagger={0.05}
-            animateFrom="bottom"
-            scaleOnHover={true}
-            hoverScale={0.97}
-            blurToFocus={true}
-            colorShiftOnHover={false}
-            onItemClick={(item: { img: string }) => setLightboxImg(item.img)}
+        <ImageAutoSlider />
+      </div>
+
+      <SectionDivider />
+
+      {/* Ubicación */}
+      <div className="home-map-section">
+        <div style={{ marginBottom: '32px' }}>
+          <div className="section-eyebrow">// Dónde encontrarnos</div>
+          <div className="section-title" style={{ marginBottom: 0 }}>
+            NUESTRA <span style={{ color: 'var(--orange)' }}>UBICACIÓN</span>
+          </div>
+        </div>
+        <div style={{ border: '1px solid var(--orange)', outline: '4px solid rgba(232,82,26,0.10)', outlineOffset: '3px', overflow: 'hidden', lineHeight: 0 }}>
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1944.9351919409842!2d-65.01325109660768!3d-32.407535665143804!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95d2e374b60b26ff%3A0x891caa300994e1f2!2sAtermicos%20y%20Baldosas%20Nordico!5e1!3m2!1ses-419!2sar!4v1779069111688!5m2!1ses-419!2sar"
+            width="100%" height="700" className="home-map-iframe"
+            style={{ border: 0, display: 'block', filter: 'grayscale(10%) contrast(1.1) brightness(0.75)' }}
+            allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+            title="Ubicación Nordico"
           />
         </div>
-        <div
-          className="home-gallery-slider"
-          onMouseEnter={() => { galleryHoverRef.current = true }}
-          onMouseLeave={() => { galleryHoverRef.current = false }}
-        >
-          <div className="hg-slider-viewport">
-            <div className="hg-slider-track" style={{ transform: `translateX(-${galleryIdx * 100}%)` }}>
-              {GALLERY_ITEMS.map((item, i) => (
-                <div key={i} className="hg-slide">
-                  <Image
-                    src={item.img}
-                    alt={`Pileta instalada con losetas atérmicas Nordico — trabajo ${i + 1}`}
-                    width={1200}
-                    height={800}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="hg-slider-overlay">
-              <div className="hg-counter">
-                <span>{String(galleryIdx + 1).padStart(2, '0')}</span>
-                {' / '}
-                {String(GALLERY_ITEMS.length).padStart(2, '0')}
-              </div>
-              <div className="hg-nav">
-                <button className="hg-nav-btn" onClick={() => setGalleryIdx(i => (i - 1 + GALLERY_ITEMS.length) % GALLERY_ITEMS.length)}>‹</button>
-                <button className="hg-nav-btn" onClick={() => setGalleryIdx(i => (i + 1) % GALLERY_ITEMS.length)}>›</button>
-              </div>
-            </div>
-          </div>
-          <div className="hg-dots">
-            {GALLERY_ITEMS.map((_, i) => (
-              <span key={i} className={i === galleryIdx ? 'active' : ''} onClick={() => setGalleryIdx(i)} />
-            ))}
-          </div>
+        <div style={{ padding: '12px 16px', background: 'var(--dark2)', border: '1px solid var(--border-line)', borderTop: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: 'var(--orange)', fontSize: '20px' }}>📍</span>
+          <span style={{ fontSize: '14px', color: 'var(--gray)' }}>Sagrada Familia 610 — Carpinteria, San Luis, Argentina</span>
         </div>
       </div>
 
@@ -284,14 +236,15 @@ export default function HomeClient() {
 
       {/* CTA */}
       <div className="home-cta">
-        <div className="home-cta-bg" />
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+          <Tiles rows={60} cols={12} tileSize="md" />
+        </div>
         <div className="home-cta-content">
           <div className="home-cta-title">¿Listo para<br />Transformar<br />tu <span>Pileta?</span></div>
           <div className="home-cta-sub">Pedí tu presupuesto sin compromiso. Te asesoramos en la elección del modelo ideal para tu proyecto.</div>
         </div>
         <div className="home-cta-actions">
-          <Link className="btn-primary" href="/presupuesto">SOLICITAR PRESUPUESTO</Link>
-          <Link className="btn-outline" href="/instalacion">VER GUÍA DE INSTALACIÓN</Link>
+          <Link className="btn-primary" href="/presupuesto" style={{ fontSize: '18px', padding: '16px 36px' }}>SOLICITAR PRESUPUESTO</Link>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ export interface ColorVariant {
   name: string
   color: string
   images: string[]
+  price?: number
 }
 
 export interface Product {
