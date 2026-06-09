@@ -171,6 +171,9 @@ export default function ProductosClient() {
           <div style={{ marginTop: '12px', fontSize: '12px', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', fontWeight: 500 }}>
             * Imágenes de carácter ilustrativo
           </div>
+          <div style={{ marginTop: '6px', fontSize: '12px', letterSpacing: '0.1em', color: 'rgba(232,82,26,0.8)', textTransform: 'uppercase', fontWeight: 500 }}>
+            * Precios publicados válidos solo para el color gris — consultá por otros colores
+          </div>
         </div>
       </div>
       {baldosas.length > 0 ? (
