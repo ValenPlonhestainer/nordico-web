@@ -163,7 +163,7 @@ export default function ProductosClient() {
       <SectionDivider />
 
       {/* Catálogo: Baldosas */}
-      <div className="catalog-header">
+      <div className="catalog-header" id="catalogo-baldosas">
         <div>
           <div className="section-eyebrow">// Baldosas</div>
           <div className="catalog-header-title">CATÁLOGO DE BALDOSAS</div>
@@ -240,7 +240,7 @@ export default function ProductosClient() {
       <SectionDivider />
 
       {/* Catálogo: Revestimientos */}
-      <div className="catalog-header">
+      <div className="catalog-header" id="catalogo-revestimientos">
         <div>
           <div className="section-eyebrow">// Revestimientos</div>
           <div className="catalog-header-title">CATÁLOGO DE REVESTIMIENTOS</div>

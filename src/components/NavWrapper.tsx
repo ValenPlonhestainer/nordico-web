@@ -4,7 +4,7 @@ import PillNav from './PillNav'
 
 const NAV_ITEMS = [
   { label: 'Inicio',      href: '/' },
-  { label: 'Productos',   href: '/productos#catalogo-grid' },
+  { label: 'Productos',   href: '/productos' },
   { label: 'Instalación', href: '/instalacion' },
   { label: 'Presupuesto', href: '/presupuesto' },
 ]

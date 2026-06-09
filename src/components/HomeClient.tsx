@@ -152,7 +152,7 @@ export default function HomeClient() {
               <div className="showcase-cta">Ver colección</div>
             </div>
           </Link>
-          <Link className="showcase-featured" href="/productos#catalogo-grid" style={{ position: 'relative', overflow: 'hidden' }}>
+          <Link className="showcase-featured" href="/productos#catalogo-baldosas" style={{ position: 'relative', overflow: 'hidden' }}>
             <Image
               src="/img/Baldosa Cartoon.png"
               alt="Baldosa exterior Nordico para solarium y pileta"
@@ -165,7 +165,7 @@ export default function HomeClient() {
               <div className="showcase-cta">Ver colección</div>
             </div>
           </Link>
-          <Link className="showcase-featured" href="/productos#catalogo-grid" style={{ position: 'relative', overflow: 'hidden' }}>
+          <Link className="showcase-featured" href="/productos#catalogo-revestimientos" style={{ position: 'relative', overflow: 'hidden' }}>
             <Image
               src="/img/Revestimiento Cartoon.png"
               alt="Revestimiento exterior Nordico para paredes de pileta"
