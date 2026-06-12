@@ -25,7 +25,7 @@ const jsonLd = {
   description: 'Losetas atérmicas de alta calidad para piletas y solarium',
   url: 'https://www.nordico.net.ar',
   telephone: '+5491163716566',
-  image: 'https://www.nordico.net.ar/img/logo%20nordico.png',
+  image: 'https://www.nordico.net.ar/img/og-nordico.png',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Sagrada Familia 610',
@@ -65,17 +65,17 @@ export const metadata: Metadata = {
     title: 'Nordico — Losetas Atérmicas para Piletas',
     description: 'Losetas atérmicas de alta calidad para piletas. Superficies frescas, diseño premium y durabilidad extrema.',
     images: [{
-      url: 'https://www.nordico.net.ar/img/Piletas%201.jpg',
+      url: 'https://www.nordico.net.ar/img/og-nordico.png',
       width: 1200,
-      height: 800,
-      alt: 'Losetas Nordico alrededor de piscina',
+      height: 630,
+      alt: 'Logo Nordico',
     }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Nordico — Losetas Atérmicas para Piletas',
     description: 'Losetas atérmicas de alta calidad para piletas. Más de 100 proyectos en Argentina.',
-    images: ['https://www.nordico.net.ar/img/Piletas%201.jpg'],
+    images: ['https://www.nordico.net.ar/img/og-nordico.png'],
   },
   robots: {
     index: true,

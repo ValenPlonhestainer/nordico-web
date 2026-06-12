@@ -1,10 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 import Footer from '@/components/Footer'
 import { useProducts } from '@/hooks/useProducts'
 import { useServices } from '@/hooks/useServices'
 import { useBaldosas } from '@/hooks/useBaldosas'
+import { CATALOG_PRODUCTS } from '@/config/products'
 
 function renderName(name: string) {
   const match = name.match(/^(.*?)(\d+X\d+)$/)
@@ -17,15 +19,60 @@ const fmt = (n: number) =>
 
 const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 
+// Cantidades pre-cargadas desde la calculadora: /presupuesto?items=recto:47,esquina:5
+const parseItemsParam = (raw: string | null): Record<string, number> => {
+  if (!raw) return {}
+  const validKeys = new Set(CATALOG_PRODUCTS.map(p => p.key))
+  const items: Record<string, number> = {}
+  for (const pair of raw.split(',')) {
+    const [key, q] = pair.split(':')
+    const qty = parseInt(q)
+    if (validKeys.has(key) && Number.isFinite(qty) && qty >= 1) items[key] = qty
+  }
+  return items
+}
+
+// Progreso guardado por pestaña: sobrevive a navegación y recargas,
+// se borra al cerrar la pestaña
+const STORAGE_KEY = 'nordico-presupuesto-v1'
+
+interface SavedQuote {
+  selectedProducts: Record<string, number>
+  qtyInputs: Record<string, string>
+  checkedServices: Record<string, boolean>
+  cashDiscount: boolean
+  name: string
+  email: string
+  phone: string
+  province: string
+}
+
+const str = (v: unknown, fallback = '') => (typeof v === 'string' ? v : fallback)
+
+// Acepta solo cantidades enteras positivas (las claves vienen de nuestra propia app)
+const sanitizeQuantities = (v: unknown): Record<string, number> => {
+  if (!v || typeof v !== 'object') return {}
+  const out: Record<string, number> = {}
+  for (const [key, val] of Object.entries(v as Record<string, unknown>)) {
+    const qty = typeof val === 'number' ? val : parseInt(String(val))
+    if (Number.isFinite(qty) && qty >= 1) out[key] = Math.floor(qty)
+  }
+  return out
+}
+
 export default function PresupuestoClient() {
   const products = useProducts()
   const baldosas = useBaldosas()
   const services = useServices()
+  const searchParams = useSearchParams()
 
   const allProducts = [...products, ...baldosas]
 
-  const [selectedProducts, setSelectedProducts] = useState<Record<string, number>>({})
-  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
+  const initialItems = parseItemsParam(searchParams.get('items'))
+  const [selectedProducts, setSelectedProducts] = useState<Record<string, number>>(initialItems)
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>(() =>
+    Object.fromEntries(Object.entries(initialItems).map(([k, v]) => [k, String(v)]))
+  )
   const [checkedServices, setCheckedServices] = useState<Record<string, boolean>>({})
   const [cashDiscount, setCashDiscount] = useState(false)
   const [name, setName] = useState('')
@@ -35,6 +82,54 @@ export default function PresupuestoClient() {
   const [showErrors, setShowErrors] = useState(false)
   const [showToast, setShowToast] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
+  // Recién después de restaurar se permite guardar, para no pisar lo
+  // guardado con los valores iniciales durante el montaje
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restaurar lo guardado en esta pestaña. Si se llega desde la calculadora
+  // con ?items=, esas cantidades tienen prioridad sobre lo guardado.
+  /* eslint-disable react-hooks/set-state-in-effect -- restauración única desde sessionStorage al montar */
+  useEffect(() => {
+    const cameFromCalculadora = Object.keys(initialItems).length > 0
+    let saved: Partial<SavedQuote> | null = null
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY)
+      if (raw) saved = JSON.parse(raw) as Partial<SavedQuote>
+    } catch {
+      setHydrated(true)
+      return
+    }
+    if (saved) {
+      if (!cameFromCalculadora) {
+        const prods = sanitizeQuantities(saved.selectedProducts)
+        setSelectedProducts(prods)
+        setQtyInputs(Object.fromEntries(Object.entries(prods).map(([k, v]) => [k, String(v)])))
+      }
+      if (saved.checkedServices && typeof saved.checkedServices === 'object') {
+        setCheckedServices(saved.checkedServices)
+      }
+      setCashDiscount(saved.cashDiscount === true)
+      setName(str(saved.name))
+      setEmail(str(saved.email))
+      setPhone(str(saved.phone))
+      setProvince(str(saved.province, 'San Luis'))
+    }
+    setHydrated(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo restaura al montar; initialItems se evalúa una vez
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Guardar el progreso ante cada cambio (solo después de restaurar)
+  useEffect(() => {
+    if (!hydrated) return
+    const state: SavedQuote = {
+      selectedProducts, qtyInputs, checkedServices, cashDiscount,
+      name, email, phone, province,
+    }
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    } catch { /* almacenamiento no disponible */ }
+  }, [hydrated, selectedProducts, qtyInputs, checkedServices, cashDiscount, name, email, phone, province])
 
   const toggleProduct = (key: string) => {
     setSelectedProducts(prev => {
@@ -219,6 +314,19 @@ export default function PresupuestoClient() {
               })}
             </div>
 
+            <div className="section-eyebrow quote-category-eyebrow" style={{ marginTop: '28px', marginBottom: '12px' }}>
+              {'// Servicios Adicionales'}
+              <span style={{ fontSize: '10px', fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--gray)', border: '1px solid rgba(255,255,255,0.12)', padding: '2px 8px', marginLeft: '8px' }}>OPCIONAL</span>
+            </div>
+            <div className="form-services">
+              {services.map(svc => (
+                <label key={svc.id} className="service-label">
+                  <input type="checkbox" checked={!!checkedServices[svc.id]} onChange={e => toggleService(svc.id, e.target.checked)} />
+                  <span>{svc.label} <span className="service-price">{svc.priceLabel}</span></span>
+                </label>
+              ))}
+            </div>
+
             {baldosas.length > 0 && (
               <>
                 <div className="section-eyebrow quote-category-eyebrow" style={{ marginTop: '28px', marginBottom: '12px' }}>// Baldosas</div>
@@ -275,27 +383,10 @@ export default function PresupuestoClient() {
             )}
           </div>
 
-          {/* 2. Servicios */}
+          {/* 2. Contacto */}
           <div className="form-section">
             <div className="form-section-header">
               <div className="form-section-num">2</div>
-              <div className="form-section-title">SERVICIOS ADICIONALES</div>
-              <span style={{ fontSize: '10px', fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--gray)', border: '1px solid rgba(255,255,255,0.12)', padding: '2px 8px', marginLeft: '4px' }}>OPCIONAL</span>
-            </div>
-            <div className="form-services">
-              {services.map(svc => (
-                <label key={svc.id} className="service-label">
-                  <input type="checkbox" checked={!!checkedServices[svc.id]} onChange={e => toggleService(svc.id, e.target.checked)} />
-                  <span>{svc.label} <span className="service-price">{svc.priceLabel}</span></span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. Contacto */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="form-section-num">3</div>
               <div className="form-section-title">DATOS DE CONTACTO <span style={{ color: 'var(--orange)', fontWeight: 700 }}>*</span></div>
             </div>
             <div className="form-contact-grid">

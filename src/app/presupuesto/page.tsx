@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import PresupuestoClient from '@/components/PresupuestoClient'
 
 export const metadata: Metadata = {
@@ -14,5 +15,9 @@ export const metadata: Metadata = {
 }
 
 export default function Presupuesto() {
-  return <PresupuestoClient />
+  return (
+    <Suspense fallback={null}>
+      <PresupuestoClient />
+    </Suspense>
+  )
 }

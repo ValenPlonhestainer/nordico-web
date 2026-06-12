@@ -61,8 +61,8 @@ nav.pill-nav {
   width: var(--nav-h);
   height: var(--nav-h);
   border-radius: 50%;
-  background: #141414;
-  padding: 8px;
+  background: transparent;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;

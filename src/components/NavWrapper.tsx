@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { label: 'Inicio',      href: '/' },
   { label: 'Productos',   href: '/productos' },
   { label: 'Instalación', href: '/instalacion' },
+  { label: 'Calculadora', href: '/calculadora' },
   { label: 'Presupuesto', href: '/presupuesto' },
 ]
 
@@ -13,7 +14,7 @@ export default function NavWrapper() {
   const pathname = usePathname()
   return (
     <PillNav
-      logo="/img/icon.png"
+      logo="/img/logo-nordico.png"
       logoAlt="Nordico"
       items={NAV_ITEMS}
       activeHref={pathname}

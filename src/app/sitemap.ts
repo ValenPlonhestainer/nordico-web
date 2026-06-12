@@ -21,6 +21,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: 'https://www.nordico.net.ar/calculadora',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: 'https://www.nordico.net.ar/instalacion',
       lastModified: new Date(),
       changeFrequency: 'monthly',
