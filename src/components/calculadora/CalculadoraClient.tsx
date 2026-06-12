@@ -166,7 +166,7 @@ export default function CalculadoraClient() {
         </p>
       </div>
 
-      <div className="calc-layout">
+      <div className="calc-layout" data-step={step}>
         <div className="calc-planner-col">
           <PoolPlanner
             length={length}

@@ -72,8 +72,8 @@ export default function PoolPlanner(props: PoolPlannerProps) {
 
   const svgRef = useRef<SVGSVGElement>(null)
   const [drag, setDrag] = useState<DragState>({ mode: 'idle' })
-  // px por metro: para dimensionar textos y handles en tamaño de pantalla
   const [pxScale, setPxScale] = useState(50)
+  const [expanded, setExpanded] = useState(false)
 
   const M = SCENE_MARGIN
   const T = TILE_SIZE
@@ -90,6 +90,13 @@ export default function PoolPlanner(props: PoolPlannerProps) {
     ro.observe(svg)
     return () => ro.disconnect()
   }, [length])
+
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [expanded])
 
   const px = (n: number) => n / pxScale // n píxeles expresados en metros
 
@@ -158,15 +165,19 @@ export default function PoolPlanner(props: PoolPlannerProps) {
   const dimX = length + T + 0.7
   const tick = 0.15
   const handleSize = px(11)
-  const handleHit = px(30)
+  const handleHit = px(44)
 
-  return (
+  const svgEl = (
     <svg
       ref={svgRef}
       className="calc-svg"
       viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
       preserveAspectRatio="xMidYMid meet"
-      style={{ aspectRatio: `${vb.w} / ${vb.h}`, touchAction: 'none' }}
+      style={{
+        aspectRatio: expanded ? undefined : `${vb.w} / ${vb.h}`,
+        touchAction: 'none',
+        ...(expanded ? { width: '100%', height: '100%' } : {}),
+      }}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
@@ -291,9 +302,8 @@ export default function PoolPlanner(props: PoolPlannerProps) {
       {solariums.map(area => {
         const isSelected = area.id === selectedId
         const showLabel = area.w * pxScale > 55 && area.h * pxScale > 30
-        // En áreas chicas, handles y hits se achican para no tapar el área de arrastre
-        const hit = Math.min(handleHit, Math.min(area.w, area.h) / 2.5)
-        const knob = Math.min(handleSize, Math.min(area.w, area.h) / 3.5)
+        const hit = Math.min(handleHit, Math.min(area.w, area.h) / 2)
+        const knob = Math.min(handleSize, Math.min(area.w, area.h) / 3)
         return (
           <g key={area.id}>
             <rect
@@ -352,5 +362,33 @@ export default function PoolPlanner(props: PoolPlannerProps) {
         )
       })}
     </svg>
+  )
+
+  return (
+    <div className={`calc-planner-wrap${expanded ? ' expanded' : ''}`}>
+      {expanded && (
+        <div className="calc-expand-bar">
+          <span className="calc-expand-title">PLANO INTERACTIVO</span>
+          <button className="calc-expand-close" onClick={() => setExpanded(false)}>
+            ✕ CERRAR
+          </button>
+        </div>
+      )}
+      {svgEl}
+      {!expanded && interactive && (
+        <button
+          className="calc-expand-btn"
+          onClick={() => setExpanded(true)}
+          aria-label="Ver en pantalla completa"
+        >
+          ⤢
+        </button>
+      )}
+      {expanded && (
+        <p className="calc-expand-hint-bar">
+          TOCÁ EL PLANO PARA AGREGAR · ARRASTRÁ PARA MOVER · ESTIRÁ DESDE LOS PUNTOS
+        </p>
+      )}
+    </div>
   )
 }
