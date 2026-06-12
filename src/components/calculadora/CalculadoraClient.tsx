@@ -8,8 +8,10 @@ import ResultSummary from './ResultSummary'
 import {
   calculatePool,
   constrainSolarium,
+  extendSolariumTo,
   findFreeSpot,
   reconcileSolariums,
+  sideSolariumSpot,
   snapToGrid,
   clamp,
   POOL_MIN_SIDE,
@@ -17,6 +19,7 @@ import {
   SOLARIUM_DEFAULT_SIDE,
   TILE_SIZE,
   type BorderKey,
+  type PoolSide,
   type SolariumArea,
 } from '@/lib/poolCalculator'
 
@@ -151,6 +154,39 @@ export default function CalculadoraClient() {
     setSelectedId(area.id)
   }
 
+  // Botones Abajo/Arriba/Izquierda/Derecha: solarium de todo el lado × 1 m
+  const addSolariumSide = (side: PoolSide) => {
+    const spot = sideSolariumSpot(side, { length, width }, solariums)
+    if (!spot) return
+    const area: SolariumArea = { id: newId(), ...spot }
+    setSolariums(prev => [...prev, area])
+    setSelectedId(area.id)
+  }
+
+  // Tocar la grilla con un solarium seleccionado lo estira hasta esa celda.
+  // Si la extensión completa choca (pileta/otros), se intenta por cada eje;
+  // solo se aplica un candidato que quede válido tal cual (sin corrimientos)
+  const extendSolarium = (mx: number, my: number) => {
+    setSolariums(prev => {
+      const area = prev.find(s => s.id === selectedId)
+      if (!area) return prev
+      const others = prev.filter(s => s.id !== area.id)
+      const sameRect = (a: SolariumArea, b: SolariumArea) =>
+        a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+      const attempt = (cand: SolariumArea): SolariumArea | null => {
+        if (sameRect(cand, area)) return null
+        const constrained = constrainSolarium(cand, area, { length, width }, others)
+        return sameRect(constrained, cand) ? constrained : null
+      }
+      const full = extendSolariumTo(area, mx, my)
+      const next =
+        attempt(full) ??
+        attempt({ ...full, y: area.y, h: area.h }) ??
+        attempt({ ...full, x: area.x, w: area.w })
+      return next ? prev.map(s => (s.id === area.id ? next : s)) : prev
+    })
+  }
+
   const removeSolarium = (id: string) => {
     setSolariums(prev => prev.filter(s => s.id !== id))
     if (selectedId === id) setSelectedId(null)
@@ -176,11 +212,12 @@ export default function CalculadoraClient() {
             onSelect={setSelectedId}
             onUpdate={updateSolarium}
             onAddAt={(x, y) => addSolarium(x, y)}
+            onExtendTo={extendSolarium}
             interactive={step === 4}
           />
           <p className="calc-planner-hint">
             {step === 4
-              ? 'Tocá el plano para agregar un solarium. Arrastralo para moverlo o estiralo desde los puntos del contorno.'
+              ? 'Agregá un solarium con los botones o tocando el plano. Con uno seleccionado: tocá la grilla hasta donde querés que llegue, arrastrá la esquina para afinar o arrastrá el cuerpo para moverlo.'
               : 'El plano se actualiza en tiempo real a medida que completás los pasos.'}
           </p>
         </div>
@@ -200,7 +237,7 @@ export default function CalculadoraClient() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onUpdateSolarium={updateSolarium}
-            onAddArea={() => addSolarium()}
+            onAddSide={addSolariumSide}
             onRemoveArea={removeSolarium}
             products={products}
           />

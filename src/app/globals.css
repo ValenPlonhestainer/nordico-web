@@ -2551,7 +2551,76 @@ footer .links a:hover { color: var(--orange); }
 .calc-stepper input:focus { border-color: var(--orange); }
 
 /* Paso 4: solariums */
-.calc-add-area { margin-bottom: 20px; }
+.calc-side-btns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.calc-side-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 10px;
+  background: none;
+  border: 1px solid var(--border-line);
+  color: var(--white2);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.calc-side-btn:hover {
+  border-color: var(--orange);
+  background: rgba(232,82,26,0.08);
+}
+
+.calc-side-arrow {
+  color: var(--orange);
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* Caja contextual cuando hay un solarium seleccionado */
+.calc-selected-box {
+  border: 1px solid rgba(232,82,26,0.45);
+  background: rgba(232,82,26,0.06);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.calc-selected-hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--gray-light);
+  margin-bottom: 12px;
+}
+.calc-selected-hint strong { color: var(--white); }
+
+.calc-selected-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.calc-selected-delete {
+  padding: 12px 18px;
+  background: none;
+  border: 1px solid rgba(220,60,60,0.5);
+  color: #e07a6a;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.calc-selected-delete:hover { border-color: #e07a6a; color: #f0958a; }
+
+.calc-selected-done { flex: 1; }
 
 .calc-area-list { border: 1px solid var(--border-line); }
 
@@ -2699,12 +2768,17 @@ footer .links a:hover { color: var(--orange); }
   .calc-chip { flex-shrink: 0; }
   .calc-dimensions { grid-template-columns: 1fr; }
 
-  /* Paso 4 en mobile: pasos arriba, plano interactivo abajo */
-  .calc-layout[data-step="4"] { display: flex; flex-direction: column; }
-  .calc-layout[data-step="4"] .calc-steps-col { order: 1; border-bottom: 1px solid var(--border-line); }
-  .calc-layout[data-step="4"] .calc-planner-col { order: 2; border-bottom: none; border-top: none; }
-  /* Plano más alto en paso 4 para facilitar interacción */
-  .calc-layout[data-step="4"] .calc-svg { min-height: 56vw; max-height: 75vw; }
+  /* Paso 4 en mobile: el plano queda fijo bajo el navbar mientras se usa
+     el panel — se ve el resultado de cada acción sin scrollear */
+  .calc-layout[data-step="4"] .calc-planner-col {
+    position: sticky;
+    top: 60px; /* navbar fija de 60px */
+    z-index: 50; /* debajo del navbar (100) y del overlay expandido (999) */
+    background: var(--black); /* mismo fondo que el body: tapa lo que scrollea debajo */
+    padding: 12px 16px;
+  }
+  .calc-layout[data-step="4"] .calc-svg { max-height: 48vw; }
+  .calc-layout[data-step="4"] .calc-planner-hint { display: none; }
 }
 
 @media (max-width: 480px) {

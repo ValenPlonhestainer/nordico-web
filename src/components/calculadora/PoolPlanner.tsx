@@ -24,6 +24,7 @@ interface PoolPlannerProps {
   onSelect: (id: string | null) => void
   onUpdate: (next: SolariumArea) => void
   onAddAt: (x: number, y: number) => void
+  onExtendTo: (x: number, y: number) => void
   interactive: boolean
 }
 
@@ -56,6 +57,23 @@ function resizeRect(area: SolariumArea, handle: Handle, px: number, py: number):
   return { ...area, x, y, w, h }
 }
 
+// Esquina del solarium más alejada del centro de la pileta: ahí va la
+// manija grande de redimensionar (es la esquina "libre", lejos del anillo)
+const farCorner = (a: SolariumArea, poolCx: number, poolCy: number): [Handle, number, number] => {
+  const corners: [Handle, number, number][] = [
+    ['nw', a.x, a.y],
+    ['ne', a.x + a.w, a.y],
+    ['sw', a.x, a.y + a.h],
+    ['se', a.x + a.w, a.y + a.h],
+  ]
+  return corners.reduce((best, c) =>
+    (c[1] - poolCx) ** 2 + (c[2] - poolCy) ** 2 >
+    (best[1] - poolCx) ** 2 + (best[2] - poolCy) ** 2
+      ? c
+      : best,
+  )
+}
+
 const handlePositions = (a: SolariumArea): [Handle, number, number][] => [
   ['nw', a.x, a.y],
   ['n', a.x + a.w / 2, a.y],
@@ -68,7 +86,7 @@ const handlePositions = (a: SolariumArea): [Handle, number, number][] => [
 ]
 
 export default function PoolPlanner(props: PoolPlannerProps) {
-  const { length, width, solariums, selectedId, onSelect, onUpdate, onAddAt, interactive } = props
+  const { length, width, solariums, selectedId, onSelect, onUpdate, onAddAt, onExtendTo, interactive } = props
 
   const svgRef = useRef<SVGSVGElement>(null)
   const [drag, setDrag] = useState<DragState>({ mode: 'idle' })
@@ -91,12 +109,16 @@ export default function PoolPlanner(props: PoolPlannerProps) {
     return () => ro.disconnect()
   }, [length])
 
+  // Escape: primero cierra pantalla completa, después deselecciona
   useEffect(() => {
-    if (!expanded) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false) }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (expanded) setExpanded(false)
+      else if (selectedId) onSelect(null)
+    }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [expanded])
+  }, [expanded, selectedId, onSelect])
 
   const px = (n: number) => n / pxScale // n píxeles expresados en metros
 
@@ -118,12 +140,11 @@ export default function PoolPlanner(props: PoolPlannerProps) {
   const onBackgroundPointerDown = (e: React.PointerEvent) => {
     if (!interactive) return
     e.preventDefault()
-    if (selectedId) {
-      onSelect(null)
-      return
-    }
     const m = toMeters(e)
-    if (m) onAddAt(m.x, m.y)
+    if (!m) return
+    // Con un solarium seleccionado, tocar la grilla lo estira hasta esa celda
+    if (selectedId) onExtendTo(m.x, m.y)
+    else onAddAt(m.x, m.y)
   }
 
   const onAreaPointerDown = (e: React.PointerEvent, area: SolariumArea) => {
@@ -214,7 +235,7 @@ export default function PoolPlanner(props: PoolPlannerProps) {
         x={vb.x} y={vb.y} width={vb.w} height={vb.h}
         fill="var(--dark)"
         onPointerDown={onBackgroundPointerDown}
-        style={{ cursor: interactive && !selectedId ? 'copy' : 'default' }}
+        style={{ cursor: interactive ? (selectedId ? 'crosshair' : 'copy') : 'default' }}
       />
       <g pointerEvents="none">
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#calcGridMinor)" />
@@ -358,6 +379,43 @@ export default function PoolPlanner(props: PoolPlannerProps) {
                 </g>
               ))
             )}
+            {/* Manija grande de esquina (estilo Piasstra), clave en táctil */}
+            {isSelected && interactive && (() => {
+              const [h, cx, cy] = farCorner(area, length / 2, width / 2)
+              const r = px(15)
+              const arm = px(7)
+              const head = px(3.5)
+              const angle = h === 'ne' || h === 'sw' ? -45 : 45
+              return (
+                <g>
+                  <g pointerEvents="none">
+                    <circle
+                      cx={cx} cy={cy} r={r}
+                      fill="var(--dark)"
+                      stroke="var(--orange)"
+                      strokeWidth={px(2)}
+                    />
+                    <g
+                      transform={`translate(${cx} ${cy}) rotate(${angle})`}
+                      stroke="var(--orange)"
+                      strokeWidth={px(2)}
+                      strokeLinecap="round"
+                      fill="none"
+                    >
+                      <line x1={-arm} y1={0} x2={arm} y2={0} />
+                      <path d={`M ${arm - head} ${-head} L ${arm} 0 L ${arm - head} ${head}`} />
+                      <path d={`M ${head - arm} ${-head} L ${-arm} 0 L ${head - arm} ${head}`} />
+                    </g>
+                  </g>
+                  <circle
+                    cx={cx} cy={cy} r={px(22)}
+                    fill="transparent"
+                    style={{ cursor: cursorFor(h) }}
+                    onPointerDown={e => onHandlePointerDown(e, area, h)}
+                  />
+                </g>
+              )
+            })()}
           </g>
         )
       })}

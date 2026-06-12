@@ -6,8 +6,10 @@ import {
   BORDER_LABELS,
   POOL_MIN_SIDE,
   POOL_MAX_SIDE,
+  SIDE_SOLARIUM_DEPTH,
   TILE_SIZE,
   type BorderKey,
+  type PoolSide,
   type SolariumArea,
 } from '@/lib/poolCalculator'
 
@@ -29,10 +31,17 @@ interface StepPanelsProps {
   selectedId: string | null
   onSelect: (id: string | null) => void
   onUpdateSolarium: (next: SolariumArea) => void
-  onAddArea: () => void
+  onAddSide: (side: PoolSide) => void
   onRemoveArea: (id: string) => void
   products: Product[]
 }
+
+const SIDE_BUTTONS: { side: PoolSide; arrow: string; label: string }[] = [
+  { side: 'bottom', arrow: '↓', label: 'ABAJO' },
+  { side: 'top', arrow: '↑', label: 'ARRIBA' },
+  { side: 'left', arrow: '←', label: 'IZQUIERDA' },
+  { side: 'right', arrow: '→', label: 'DERECHA' },
+]
 
 const m2 = (n: number) =>
   n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -41,7 +50,7 @@ export default function StepPanels(props: StepPanelsProps) {
   const {
     step, setStep, shapeChosen, onChooseShape, borderKey, onChooseBorder,
     length, width, onSideChange, solariums, selectedId, onSelect,
-    onUpdateSolarium, onAddArea, onRemoveArea, products,
+    onUpdateSolarium, onAddSide, onRemoveArea, products,
   } = props
 
   const solariumM2 = solariums.reduce((sum, s) => sum + s.w * s.h, 0)
@@ -266,12 +275,35 @@ export default function StepPanels(props: StepPanelsProps) {
             <span className="calc-optional-badge">OPCIONAL</span>
           </div>
           <p className="calc-step-note">
-            Tocá el plano alrededor de la pileta para agregar áreas de solarium.
-            Podés moverlas arrastrándolas o estirarlas desde los puntos del contorno.
+            <strong>¿Querés agregar un solarium?</strong> Elegí de qué lado de la
+            pileta va — lo creamos del largo del lado × {SIDE_SOLARIUM_DEPTH} m
+            y lo ajustás en el plano.
           </p>
-          <button className="btn-outline calc-add-area" onClick={onAddArea}>
-            + AGREGAR ÁREA
-          </button>
+          <div className="calc-side-btns">
+            {SIDE_BUTTONS.map(({ side, arrow, label }) => (
+              <button key={side} className="calc-side-btn" onClick={() => onAddSide(side)}>
+                <span className="calc-side-arrow">{arrow}</span> {label}
+              </button>
+            ))}
+          </div>
+
+          {selectedId && (
+            <div className="calc-selected-box">
+              <p className="calc-selected-hint">
+                <strong>Tocá la grilla</strong> hasta donde querés que llegue ·
+                arrastrá la <strong>esquina</strong> para afinar ·
+                arrastrá el cuerpo para moverlo
+              </p>
+              <div className="calc-selected-actions">
+                <button className="calc-selected-delete" onClick={() => onRemoveArea(selectedId)}>
+                  ELIMINAR
+                </button>
+                <button className="btn-primary calc-selected-done" onClick={() => onSelect(null)}>
+                  LISTO
+                </button>
+              </div>
+            </div>
+          )}
 
           {solariums.length > 0 && (
             <div className="calc-area-list">

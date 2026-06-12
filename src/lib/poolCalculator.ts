@@ -4,6 +4,7 @@
 
 export type PoolShape = 'rect' // futuro: 'lshape' | 'oval'
 export type BorderKey = 'recto' | 'ballena5050'
+export type PoolSide = 'top' | 'bottom' | 'left' | 'right'
 
 export interface Rect {
   x: number
@@ -214,6 +215,49 @@ export function findFreeSpot(
     }
   }
   return null
+}
+
+// Profundidad (hacia afuera de la pileta) del solarium creado por lado
+export const SIDE_SOLARIUM_DEPTH = 1
+
+/**
+ * Rect de un solarium que cubre todo el lado elegido × SIDE_SOLARIUM_DEPTH m,
+ * pegado por fuera del anillo de borde. Si esa posición colisiona con otros
+ * solariums, busca el lugar libre más cercano. Devuelve null si no hay lugar.
+ */
+export function sideSolariumSpot(
+  side: PoolSide,
+  pool: { length: number; width: number },
+  others: SolariumArea[],
+): Rect | null {
+  const d = SIDE_SOLARIUM_DEPTH
+  const ideal: Rect =
+    side === 'top' ? { x: 0, y: -TILE_SIZE - d, w: pool.length, h: d } :
+    side === 'bottom' ? { x: 0, y: pool.width + TILE_SIZE, w: pool.length, h: d } :
+    side === 'left' ? { x: -TILE_SIZE - d, y: 0, w: d, h: pool.width } :
+    { x: pool.length + TILE_SIZE, y: 0, w: d, h: pool.width }
+
+  if (!others.some(o => rectsIntersect(ideal, o))) return ideal
+  return findFreeSpot(ideal.x + ideal.w / 2, ideal.y + ideal.h / 2, ideal.w, ideal.h, pool, others)
+}
+
+/**
+ * Extiende un solarium hasta incluir la celda de grilla que contiene el punto
+ * tocado (unión por eje). Devuelve el candidato sin restricciones: el caller
+ * debe pasarlo por constrainSolarium.
+ */
+export function extendSolariumTo(area: SolariumArea, mx: number, my: number): SolariumArea {
+  const cellX = Math.floor(mx / GRID_SNAP) * GRID_SNAP
+  const cellY = Math.floor(my / GRID_SNAP) * GRID_SNAP
+  const x = Math.min(area.x, cellX)
+  const y = Math.min(area.y, cellY)
+  return {
+    ...area,
+    x,
+    y,
+    w: Math.max(area.x + area.w, cellX + GRID_SNAP) - x,
+    h: Math.max(area.y + area.h, cellY + GRID_SNAP) - y,
+  }
 }
 
 /**
