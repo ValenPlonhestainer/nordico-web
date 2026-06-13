@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useProducts } from '@/hooks/useProducts'
 import { useBaldosas } from '@/hooks/useBaldosas'
 import Footer from '@/components/Footer'
@@ -82,16 +83,15 @@ function CardSlider({ images, alt, onImageClick }: { images: string[]; alt: stri
 }
 
 function renderName(name: string) {
-  const match = name.match(/^(.*?)(\d+X\d+)$/)
+  const match = name.match(/^(.*?)(\d+[xX]\d+|\d+[mM][tT][sS])(.*)$/)
   if (!match) return <>{name}</>
-  return <>{match[1]}<span style={{ textDecoration: 'underline', textDecorationColor: 'var(--orange)', textUnderlineOffset: '3px' }}>{match[2]}</span></>
+  return <>{match[1]}<span style={{ textDecoration: 'underline', textDecorationColor: 'var(--orange)', textUnderlineOffset: '3px' }}>{match[2]}</span>{match[3]}</>
 }
 
 export default function ProductosClient() {
   const products = useProducts()
   const baldosas = useBaldosas()
   const [lightbox, setLightbox] = useState<{ images: string[]; alt: string; index: number } | null>(null)
-  const [selectedVariant, setSelectedVariant] = useState<Record<string, number>>({})
 
   return (
     <div id="catalogo">
@@ -145,9 +145,19 @@ export default function ProductosClient() {
       </div>
       <div className="products-grid">
         {products.map(product => (
-          <div className="product-card" key={product.key} data-product-key={product.key}>
-            <div className="product-thumb">
-              <CardSlider images={product.images} alt={product.name} onImageClick={i => setLightbox({ images: product.images, alt: product.name, index: i })} />
+          <div className="product-card" key={product.key} id={`producto-${product.key}`} data-product-key={product.key}>
+            <div className="product-thumb" style={{ position: 'relative' }}>
+              {product.images[0] ? (
+                <Image
+                  src={product.images[0]}
+                  alt={product.name}
+                  width={600}
+                  height={450}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                />
+              ) : (
+                <div style={{ width: '100%', height: '100%', background: 'var(--dark2)' }} />
+              )}
             </div>
             <div className="product-info">
               <div className="product-name">{renderName(product.name)}</div>
@@ -155,6 +165,12 @@ export default function ProductosClient() {
                 <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>c/u</span></div>
                 {product.tag && <div className="tag-pill">{product.tag}</div>}
               </div>
+              <Link
+                href={`/productos/${product.key}`}
+                className="btn-ver-producto"
+              >
+                VER PRODUCTO
+              </Link>
             </div>
           </div>
         ))}
@@ -179,51 +195,33 @@ export default function ProductosClient() {
       {baldosas.length > 0 ? (
         <div className="products-grid">
           {baldosas.map(product => {
-            const selectedIdx = selectedVariant[product.key] // undefined = sin selección, muestra imagen base
-            const currentVariant = selectedIdx !== undefined ? product.variants?.[selectedIdx] : null
-            const displayImages = currentVariant?.images?.length ? currentVariant.images : product.images
             return (
               <div className="product-card" key={product.key} data-product-key={product.key}>
-                <div className="product-thumb">
-                  <CardSlider images={displayImages} alt={product.name} onImageClick={i => setLightbox({ images: displayImages, alt: product.name, index: i })} />
+                <div className="product-thumb" style={{ position: 'relative' }}>
+                  {product.images[0] ? (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.name}
+                      width={600}
+                      height={450}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', background: 'var(--dark2)' }} />
+                  )}
                 </div>
-                {product.variants && product.variants.length > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', padding: '10px 16px 4px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {product.variants.map((v, i) => (
-                      <button
-                        key={i}
-                        title={v.name}
-                        onClick={e => { e.stopPropagation(); setSelectedVariant(prev => { if (prev[product.key] === i) { const next = { ...prev }; delete next[product.key]; return next } return { ...prev, [product.key]: i } }) }}
-                        style={{
-                          width: '22px',
-                          height: '22px',
-                          borderRadius: '50%',
-                          background: v.color,
-                          border: selectedIdx === i ? '2px solid #E8521A' : '2px solid transparent',
-                          outline: '2px solid rgba(255,255,255,0.15)',
-                          outlineOffset: '1px',
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                          transition: 'border-color 0.15s, transform 0.15s',
-                          transform: selectedIdx === i ? 'scale(1.18)' : 'scale(1)',
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
                 <div className="product-info">
                   <div className="product-name">{renderName(product.name)}</div>
                   <div className="product-meta">
-                    {currentVariant?.price ? (
-                      <div className="product-price">
-                        ${product.priceUnit.toLocaleString('es-AR')}
-                        <span className="price-additional" style={{ color: 'var(--orange)', fontWeight: 600 }}> + ${currentVariant.price.toLocaleString('es-AR')}</span> <span>m2</span>
-                      </div>
-                    ) : (
-                      <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>m2</span></div>
-                    )}
+                    <div className="product-price">${product.priceUnit.toLocaleString('es-AR')} <span>m2</span></div>
                     {product.tag && <div className="tag-pill">{product.tag}</div>}
                   </div>
+                  <Link
+                    href={`/productos/${product.key}`}
+                    className="btn-ver-producto"
+                  >
+                    VER PRODUCTO
+                  </Link>
                 </div>
               </div>
             )

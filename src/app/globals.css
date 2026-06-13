@@ -872,8 +872,14 @@ nav {
   background: var(--dark);
   padding: 0;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, box-shadow 0.2s;
   overflow: hidden;
+  scroll-margin-top: 80px; /* el ancla no queda tapada por el navbar fijo (60px) */
+}
+
+/* Resalte breve cuando se llega a la tarjeta desde un link con ancla */
+.product-card:target {
+  box-shadow: 0 0 0 2px var(--orange);
 }
 
 
@@ -2273,12 +2279,13 @@ footer .links a:hover { color: var(--orange); }
   background: none;
   border: 1px solid var(--border-line);
   color: var(--gray-light);
-  padding: 6px 14px;
+  padding: 10px 18px;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
   cursor: pointer;
+  touch-action: manipulation;
   transition: border-color 0.2s, color 0.2s;
 }
 .calc-expand-close:hover { border-color: var(--orange); color: var(--white); }
@@ -2728,6 +2735,15 @@ footer .links a:hover { color: var(--orange); }
 
 .calc-result-name { color: var(--white2); font-weight: 600; }
 
+.calc-result-link {
+  text-decoration: none;
+  border-bottom: 1px solid rgba(232,82,26,0.4);
+  width: fit-content;
+  transition: color 0.15s, border-color 0.15s;
+}
+.calc-result-link span { color: var(--orange); font-size: 0.85em; }
+.calc-result-link:hover { color: var(--orange); border-bottom-color: var(--orange); }
+
 .calc-result .summary-row .value { font-size: 15px; }
 
 .calc-result-note {
@@ -2764,25 +2780,76 @@ footer .links a:hover { color: var(--orange); }
   }
   .calc-svg { max-height: 60vh; }
   .calc-steps-col { padding: 24px 16px 48px; }
-  .calc-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; }
-  .calc-chip { flex-shrink: 0; }
+  /* En mobile los pasos envuelven hacia abajo en vez de cortarse/scrollear */
+  .calc-chips { flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .calc-chip { flex-shrink: 0; padding: 7px 10px; }
   .calc-dimensions { grid-template-columns: 1fr; }
 
-  /* Paso 4 en mobile: el plano queda fijo bajo el navbar mientras se usa
-     el panel — se ve el resultado de cada acción sin scrollear */
-  .calc-layout[data-step="4"] .calc-planner-col {
-    position: sticky;
-    top: 60px; /* navbar fija de 60px */
-    z-index: 50; /* debajo del navbar (100) y del overlay expandido (999) */
-    background: var(--black); /* mismo fondo que el body: tapa lo que scrollea debajo */
-    padding: 12px 16px;
-  }
-  .calc-layout[data-step="4"] .calc-svg { max-height: 48vw; }
-  .calc-layout[data-step="4"] .calc-planner-hint { display: none; }
+  /* El plano scrollea con la página en mobile (no queda fijo) */
 }
 
 @media (max-width: 480px) {
   .calc-options { grid-template-columns: 1fr 1fr; }
   .calc-area-row { flex-wrap: wrap; }
   .calc-area-m2 { margin-left: 34px; }
+}
+
+/* =============================================
+   PRODUCTO — Botón "Ver producto" en catálogo
+   ============================================= */
+.btn-ver-producto {
+  display: block;
+  margin-top: 12px;
+  padding: 10px 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--white);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.btn-ver-producto:hover {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: #fff;
+}
+
+/* =============================================
+   PRODUCTO — Detalle
+   ============================================= */
+.pd-main-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+}
+
+.pd-related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .pd-main-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 24px 24px;
+  }
+  .pd-related-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .pd-main-layout { padding: 20px 16px; }
+  .pd-related-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
