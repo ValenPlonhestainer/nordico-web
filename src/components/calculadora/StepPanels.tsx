@@ -9,24 +9,29 @@ import {
   SIDE_SOLARIUM_DEPTH,
   TILE_SIZE,
   type BorderKey,
+  type PoolShape,
   type PoolSide,
   type SolariumArea,
 } from '@/lib/poolCalculator'
 
-export type Step = 1 | 2 | 3 | 4
+export type Step = 1 | 2 | 3 | 4 | 5
 
 const BORDER_KEYS: BorderKey[] = ['recto', 'ballena5050']
 
 interface StepPanelsProps {
   step: Step
   setStep: (s: Step) => void
-  shapeChosen: boolean
-  onChooseShape: () => void
+  shape: PoolShape | null
+  onChooseShape: (s: PoolShape) => void
   borderKey: BorderKey | null
   onChooseBorder: (k: BorderKey) => void
   length: number
   width: number
+  length2: number
+  width2: number
   onSideChange: (side: 'length' | 'width', value: number) => void
+  onLShapeChange: (side: 'length2' | 'width2', value: number) => void
+  onDimFocus: (side: 'length' | 'width' | null) => void
   solariums: SolariumArea[]
   selectedId: string | null
   onSelect: (id: string | null) => void
@@ -48,16 +53,21 @@ const m2 = (n: number) =>
 
 export default function StepPanels(props: StepPanelsProps) {
   const {
-    step, setStep, shapeChosen, onChooseShape, borderKey, onChooseBorder,
-    length, width, onSideChange, solariums, selectedId, onSelect,
-    onUpdateSolarium, onAddSide, onRemoveArea, products,
+    step, setStep, shape, onChooseShape, borderKey, onChooseBorder,
+    length, width, length2, width2, onSideChange, onLShapeChange, onDimFocus,
+    solariums, selectedId, onSelect, onUpdateSolarium, onAddSide, onRemoveArea, products,
   } = props
+
+  const shapeLabel =
+    shape === 'rect' ? 'RECTANGULAR' :
+    shape === 'lshape' ? 'EN L' :
+    shape === 'arco' ? 'ARCO ROMANO' : ''
 
   const solariumM2 = solariums.reduce((sum, s) => sum + s.w * s.h, 0)
   const solariumTiles = Math.ceil(solariumM2 / (TILE_SIZE * TILE_SIZE))
 
   // Borradores de los inputs: se escribe libre y se valida al salir del campo
-  const [dimDrafts, setDimDrafts] = useState<{ length: string | null; width: string | null }>({ length: null, width: null })
+  const [dimDrafts, setDimDrafts] = useState<{ length: string | null; width: string | null; length2: string | null; width2: string | null }>({ length: null, width: null, length2: null, width2: null })
   const [areaDrafts, setAreaDrafts] = useState<Record<string, string>>({})
 
   const commitDim = (side: 'length' | 'width') => {
@@ -89,15 +99,16 @@ export default function StepPanels(props: StepPanelsProps) {
 
   const canGo = (n: Step): boolean => {
     if (n === 1) return true
-    if (n === 2) return shapeChosen
-    return shapeChosen && borderKey !== null
+    if (n === 2) return shape !== null
+    return shape !== null && borderKey !== null
   }
 
   const chips: { n: Step; label: string; done: boolean; value: string }[] = [
-    { n: 1, label: 'FORMA', done: shapeChosen, value: 'RECTANGULAR' },
+    { n: 1, label: 'FORMA', done: shape !== null, value: shapeLabel },
     { n: 2, label: 'BORDE', done: borderKey !== null, value: borderKey ? BORDER_LABELS[borderKey] : '' },
     { n: 3, label: 'MEDIDAS', done: step > 3, value: `${length} × ${width} m` },
-    { n: 4, label: 'SOLARIUM', done: step === 4 && solariums.length > 0, value: solariums.length > 0 ? `${solariumTiles} losetas` : '' },
+    { n: 4, label: 'SOLARIUM', done: solariums.length > 0, value: solariums.length > 0 ? `${solariumTiles} losetas` : '' },
+    { n: 5, label: 'CÁLCULO', done: false, value: '' },
   ]
 
   const borderProducts = BORDER_KEYS
@@ -138,8 +149,8 @@ export default function StepPanels(props: StepPanelsProps) {
           </div>
           <div className="calc-options">
             <div
-              className={`calc-option${shapeChosen ? ' selected' : ''}`}
-              onClick={onChooseShape}
+              className={`calc-option${shape === 'rect' ? ' selected' : ''}`}
+              onClick={() => onChooseShape('rect')}
             >
               <div className="calc-option-check">✓</div>
               <svg viewBox="0 0 64 40" className="calc-option-icon" aria-hidden="true">
@@ -148,28 +159,34 @@ export default function StepPanels(props: StepPanelsProps) {
               <div className="calc-option-name">RECTANGULAR</div>
               <div className="calc-option-sub">Rincones rectos</div>
             </div>
-            <div className="calc-option disabled">
-              <span className="calc-option-badge">PRÓXIMAMENTE</span>
+            <div
+              className={`calc-option${shape === 'lshape' ? ' selected' : ''}`}
+              onClick={() => onChooseShape('lshape')}
+            >
+              <div className="calc-option-check">✓</div>
               <svg viewBox="0 0 64 40" className="calc-option-icon" aria-hidden="true">
-                <rect x="6" y="6" width="52" height="28" rx="10" fill="none" stroke="currentColor" strokeWidth="2" />
-              </svg>
-              <div className="calc-option-name">RINCONES CURVOS</div>
-              <div className="calc-option-sub">Esquinas redondeadas</div>
-            </div>
-            <div className="calc-option disabled">
-              <span className="calc-option-badge">PRÓXIMAMENTE</span>
-              <svg viewBox="0 0 64 40" className="calc-option-icon" aria-hidden="true">
-                <path d="M8 8 H40 V20 H56 V32 H8 Z" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="M8 6 H36 V20 H58 V34 H8 Z" fill="rgba(232,82,26,0.15)" stroke="currentColor" strokeWidth="2" />
               </svg>
               <div className="calc-option-name">FORMA EN L</div>
-              <div className="calc-option-sub">Y otras formas</div>
+              <div className="calc-option-sub">Con recorte en una esquina</div>
+            </div>
+            <div
+              className={`calc-option${shape === 'arco' ? ' selected' : ''}`}
+              onClick={() => onChooseShape('arco')}
+            >
+              <div className="calc-option-check">✓</div>
+              <svg viewBox="0 0 64 40" className="calc-option-icon" aria-hidden="true">
+                <path d="M6 6 L44 6 A14 14 0 0 1 44 34 L6 34 Z" fill="rgba(232,82,26,0.15)" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              <div className="calc-option-name">ARCO ROMANO</div>
+              <div className="calc-option-sub">Un extremo semicircular</div>
             </div>
           </div>
           <div className="calc-step-actions">
-            <button className="btn-primary" disabled={!shapeChosen} onClick={() => setStep(2)}>
+            <button className="btn-primary" disabled={shape === null} onClick={() => setStep(2)}>
               CONTINUAR
             </button>
-            {!shapeChosen && <span className="calc-step-hint">Falta: elegí la forma de tu pileta</span>}
+            {shape === null && <span className="calc-step-hint">Falta: elegí la forma de tu pileta</span>}
           </div>
         </div>
       )}
@@ -242,7 +259,8 @@ export default function StepPanels(props: StepPanelsProps) {
                     inputMode="decimal"
                     value={dimDrafts[side] ?? String(value)}
                     onChange={e => setDimDrafts(d => ({ ...d, [side]: e.target.value }))}
-                    onBlur={() => commitDim(side)}
+                    onFocus={() => onDimFocus(side)}
+                    onBlur={() => { commitDim(side); onDimFocus(null) }}
                     onKeyDown={blurOnEnter}
                   />
                   <button
@@ -258,6 +276,67 @@ export default function StepPanels(props: StepPanelsProps) {
               </div>
             ))}
           </div>
+
+          {shape === 'lshape' && (
+            <>
+              <p className="calc-step-note" style={{ marginTop: '16px' }}>
+                <strong>Recorte en esquina</strong> — medí el ancho y alto de la parte que falta en la esquina superior derecha.
+              </p>
+              <div className="calc-dimensions">
+                {([
+                  ['length2', 'ANCHO RECORTE', length2, length] as const,
+                  ['width2', 'ALTO RECORTE', width2, width] as const,
+                ]).map(([side, label, value, max]) => (
+                  <div key={side} className="calc-dimension">
+                    <label>{label} (M)</label>
+                    <div className="calc-stepper">
+                      <button
+                        className="tile-qty-btn"
+                        onClick={() => {
+                          setDimDrafts(d => ({ ...d, [side]: null }))
+                          onLShapeChange(side, value - 0.5)
+                        }}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={dimDrafts[side] ?? String(value)}
+                        onChange={e => setDimDrafts(d => ({ ...d, [side]: e.target.value }))}
+                        onFocus={() => {}}
+                        onBlur={() => {
+                          const raw = dimDrafts[side]
+                          if (raw !== null) {
+                            const v = parseFloat(raw.replace(',', '.'))
+                            if (!isNaN(v)) onLShapeChange(side, v)
+                          }
+                          setDimDrafts(d => ({ ...d, [side]: null }))
+                        }}
+                        onKeyDown={blurOnEnter}
+                      />
+                      <button
+                        className="tile-qty-btn"
+                        onClick={() => {
+                          setDimDrafts(d => ({ ...d, [side]: null }))
+                          onLShapeChange(side, value + 0.5)
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {shape === 'arco' && (
+            <p className="calc-step-note" style={{ marginTop: '16px', color: 'rgba(232,82,26,0.9)' }}>
+              El arco romano reemplaza uno de los extremos cortos. El radio del semicírculo es la mitad del ANCHO ({(width / 2).toLocaleString('es-AR', { minimumFractionDigits: 1 })} m).
+            </p>
+          )}
+
           <div className="calc-step-actions">
             <button className="btn-primary" onClick={() => setStep(4)}>
               CONTINUAR
@@ -350,6 +429,34 @@ export default function StepPanels(props: StepPanelsProps) {
               </div>
             </div>
           )}
+
+          <div className="calc-step-actions">
+            <button
+              className="btn-primary"
+              onClick={() => { onSelect(null); setStep(5) }}
+            >
+              {solariums.length > 0 ? 'CONTINUAR' : 'OMITIR Y VER MI CÁLCULO'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Paso 5: Resultado (el panel TU CÁLCULO se renderiza debajo) */}
+      {step === 5 && (
+        <div className="calc-step-panel">
+          <div className="form-section-header">
+            <div className="form-section-num">5</div>
+            <div className="form-section-title">TU CÁLCULO</div>
+          </div>
+          <p className="calc-step-note">
+            Estas son las cantidades para tu pileta. Podés continuar al presupuesto
+            con todo cargado, o volver atrás para ajustar las medidas o los solariums.
+          </p>
+          <div className="calc-step-actions">
+            <button className="btn-outline" onClick={() => setStep(4)}>
+              ← VOLVER A SOLARIUMS
+            </button>
+          </div>
         </div>
       )}
 

@@ -18,7 +18,9 @@ import {
   POOL_MAX_SIDE,
   SOLARIUM_DEFAULT_SIDE,
   TILE_SIZE,
+  GRID_SNAP,
   type BorderKey,
+  type PoolShape,
   type PoolSide,
   type SolariumArea,
 } from '@/lib/poolCalculator'
@@ -34,10 +36,13 @@ const STORAGE_KEY = 'nordico-calculadora-v1'
 
 interface SavedState {
   step: Step
-  shapeChosen: boolean
+  shape: PoolShape | null
+  shapeChosen?: boolean // legado — se convierte a shape al restaurar
   borderKey: BorderKey | null
   length: number
   width: number
+  length2: number
+  width2: number
   solariums: SolariumArea[]
 }
 
@@ -45,12 +50,16 @@ export default function CalculadoraClient() {
   const products = useProducts()
 
   const [step, setStep] = useState<Step>(1)
-  const [shapeChosen, setShapeChosen] = useState(false)
+  const [shape, setShape] = useState<PoolShape | null>(null)
   const [borderKey, setBorderKey] = useState<BorderKey | null>(null)
   const [length, setLength] = useState(8)
   const [width, setWidth] = useState(4)
+  const [length2, setLength2] = useState(3)
+  const [width2, setWidth2] = useState(2)
   const [solariums, setSolariums] = useState<SolariumArea[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Medida resaltada en el plano según el input enfocado en el paso 3
+  const [highlightDim, setHighlightDim] = useState<'length' | 'width' | null>(null)
   // Recién después de restaurar se permite guardar, para no pisar lo
   // guardado con los valores por defecto durante el montaje
   const [hydrated, setHydrated] = useState(false)
@@ -80,7 +89,17 @@ export default function CalculadoraClient() {
     const safeBorder = saved.borderKey === 'recto' || saved.borderKey === 'ballena5050'
       ? saved.borderKey
       : null
-    const safeShape = saved.shapeChosen === true
+    // Compatibilidad con sesiones antiguas que guardaban shapeChosen: boolean
+    const safeShape: PoolShape | null =
+      (saved.shape === 'rect' || saved.shape === 'lshape' || saved.shape === 'arco')
+        ? saved.shape
+        : (saved.shapeChosen === true ? 'rect' : null)
+    const safeLength2 = typeof saved.length2 === 'number' && Number.isFinite(saved.length2)
+      ? clamp(snapToGrid(saved.length2), GRID_SNAP, safeLength - GRID_SNAP)
+      : Math.min(3, safeLength - GRID_SNAP)
+    const safeWidth2 = typeof saved.width2 === 'number' && Number.isFinite(saved.width2)
+      ? clamp(snapToGrid(saved.width2), GRID_SNAP, safeWidth - GRID_SNAP)
+      : Math.min(2, safeWidth - GRID_SNAP)
     const safeSolariums = Array.isArray(saved.solariums)
       ? reconcileSolariums(
           saved.solariums.filter(s =>
@@ -90,14 +109,16 @@ export default function CalculadoraClient() {
           { length: safeLength, width: safeWidth },
         )
       : []
-    const maxStep: Step = !safeShape ? 1 : !safeBorder ? 2 : 4
+    const maxStep: Step = safeShape === null ? 1 : !safeBorder ? 2 : 5
     const savedStep = typeof saved.step === 'number' ? saved.step : 1
     const safeStep = Math.min(Math.max(Math.round(savedStep), 1), maxStep) as Step
 
-    setShapeChosen(safeShape)
+    setShape(safeShape)
     setBorderKey(safeBorder)
     setLength(safeLength)
     setWidth(safeWidth)
+    setLength2(safeLength2)
+    setWidth2(safeWidth2)
     setSolariums(safeSolariums)
     setStep(safeStep)
     setHydrated(true)
@@ -107,26 +128,39 @@ export default function CalculadoraClient() {
   // Guardar el progreso ante cada cambio (solo después de restaurar)
   useEffect(() => {
     if (!hydrated) return
-    const state: SavedState = { step, shapeChosen, borderKey, length, width, solariums }
+    const state: SavedState = { step, shape, borderKey, length, width, length2, width2, solariums }
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch { /* almacenamiento no disponible */ }
-  }, [hydrated, step, shapeChosen, borderKey, length, width, solariums])
+  }, [hydrated, step, shape, borderKey, length, width, length2, width2, solariums])
 
   const result = useMemo(
-    () => borderKey
-      ? calculatePool({ shape: 'rect', length, width, borderKey, solariums })
+    () => borderKey && shape
+      ? calculatePool({ shape, length, width, length2, width2, borderKey, solariums })
       : null,
-    [borderKey, length, width, solariums],
+    [shape, borderKey, length, width, length2, width2, solariums],
   )
 
   const setPoolSide = (side: 'length' | 'width', value: number) => {
     const safe = clamp(snapToGrid(value), POOL_MIN_SIDE, POOL_MAX_SIDE)
     const nextLength = side === 'length' ? safe : length
     const nextWidth = side === 'width' ? safe : width
-    if (side === 'length') setLength(safe)
-    else setWidth(safe)
+    if (side === 'length') {
+      setLength(safe)
+      setLength2(prev => clamp(prev, GRID_SNAP, safe - GRID_SNAP))
+    } else {
+      setWidth(safe)
+      setWidth2(prev => clamp(prev, GRID_SNAP, safe - GRID_SNAP))
+    }
     setSolariums(prev => reconcileSolariums(prev, { length: nextLength, width: nextWidth }))
+  }
+
+  const setLShapeSide = (side: 'length2' | 'width2', value: number) => {
+    if (side === 'length2') {
+      setLength2(clamp(snapToGrid(value), GRID_SNAP, length - GRID_SNAP))
+    } else {
+      setWidth2(clamp(snapToGrid(value), GRID_SNAP, width - GRID_SNAP))
+    }
   }
 
   const updateSolarium = (next: SolariumArea) => {
@@ -205,8 +239,11 @@ export default function CalculadoraClient() {
       <div className="calc-layout" data-step={step}>
         <div className="calc-planner-col">
           <PoolPlanner
+            shape={shape ?? 'rect'}
             length={length}
             width={width}
+            length2={length2}
+            width2={width2}
             solariums={solariums}
             selectedId={selectedId}
             onSelect={setSelectedId}
@@ -214,6 +251,7 @@ export default function CalculadoraClient() {
             onAddAt={(x, y) => addSolarium(x, y)}
             onExtendTo={extendSolarium}
             interactive={step === 4}
+            highlightDim={highlightDim}
           />
           <p className="calc-planner-hint">
             {step === 4
@@ -226,13 +264,17 @@ export default function CalculadoraClient() {
           <StepPanels
             step={step}
             setStep={setStep}
-            shapeChosen={shapeChosen}
-            onChooseShape={() => setShapeChosen(true)}
+            shape={shape}
+            onChooseShape={setShape}
             borderKey={borderKey}
             onChooseBorder={setBorderKey}
             length={length}
             width={width}
+            length2={length2}
+            width2={width2}
             onSideChange={setPoolSide}
+            onLShapeChange={setLShapeSide}
+            onDimFocus={setHighlightDim}
             solariums={solariums}
             selectedId={selectedId}
             onSelect={setSelectedId}
@@ -242,7 +284,7 @@ export default function CalculadoraClient() {
             products={products}
           />
 
-          {result && step === 4 && (
+          {result && step === 5 && (
             <ResultSummary result={result} products={products} />
           )}
         </div>

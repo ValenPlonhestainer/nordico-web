@@ -2,7 +2,7 @@
 // Sin React ni Supabase: todas las funciones son puras y testeables.
 // Unidades: metros. Origen de coordenadas = esquina superior izquierda de la pileta.
 
-export type PoolShape = 'rect' // futuro: 'lshape' | 'oval'
+export type PoolShape = 'rect' | 'lshape' | 'arco'
 export type BorderKey = 'recto' | 'ballena5050'
 export type PoolSide = 'top' | 'bottom' | 'left' | 'right'
 
@@ -19,8 +19,10 @@ export interface SolariumArea extends Rect {
 
 export interface PoolConfig {
   shape: PoolShape
-  length: number // m, lado largo (eje X)
-  width: number // m, lado corto (eje Y)
+  length: number   // m, lado largo (eje X)
+  width: number    // m, lado corto (eje Y)
+  length2?: number // lshape: ancho horizontal del recorte (esquina superior derecha)
+  width2?: number  // lshape: alto vertical del recorte (esquina superior derecha)
   borderKey: BorderKey
   solariums: SolariumArea[]
 }
@@ -42,7 +44,9 @@ export interface CalcResult {
 export const TILE_SIZE = 0.5 // m — lado de la loseta
 export const GRID_SNAP = 0.5 // m — snap del plano
 export const WASTE_FACTOR = 0.05
-export const CORNER_COUNT = 4
+export const CORNER_COUNT = 4       // rect: 4 esquinas convexas
+export const LSHAPE_CORNER_COUNT = 5 // en L: 5 esquinas convexas (la cóncava no usa esquina)
+export const ARCO_CORNER_COUNT = 2   // arco romano: 2 esquinas (en el extremo recto)
 /**
  * Slots de borde (de TILE_SIZE m) que cada pieza ESQUINA ocupa sobre el
  * perímetro y que se descuentan de los bordes rectos.
@@ -78,26 +82,48 @@ const withWaste = (baseQty: number): Pick<PieceLine, 'baseQty' | 'wasteQty' | 'q
 
 /**
  * Calcula las piezas necesarias para la configuración dada.
- * Caso de referencia: pileta 8×4 → perímetro 24 m → 48 slots →
- * 44 bordes base (+3 desperdicio = 47); 4 esquinas (+1 = 5);
- * solarium 8 m² → 32 losetas (+2 = 34).
+ * Caso de referencia rect 8×4: perímetro 24 m → 48 slots → 44 bordes (+3 = 47); 4 esquinas (+1 = 5).
+ * En L 8×4: mismo perímetro, 5 esquinas convexas (1 cóncava no usa esquina).
+ * Arco romano 8×4: borde recto 16 m (32 slots - 2 = 30); 2 esquinas; más ≈13 cuñas (π×2/0.5).
  */
 export function calculatePool(config: PoolConfig, tileSize: number = TILE_SIZE): CalcResult {
-  const { length, width, borderKey, solariums } = config
+  const { shape, length, width, borderKey, solariums } = config
 
-  const perimeter = 2 * (length + width)
-  // round (no ceil): las medidas snapeadas a la grilla garantizan exactitud,
-  // round absorbe el error de punto flotante
-  const borderSlots = Math.round(perimeter / tileSize)
-  const borderBase = Math.max(0, borderSlots - CORNER_COUNT * CORNER_SLOT_DISCOUNT)
+  let perimeter: number
+  let cornerCount: number
+  let arcM = 0
+
+  if (shape === 'lshape') {
+    // El perímetro de un L = mismo que el rectángulo envolvente (agregar un recorte no cambia el total)
+    perimeter = 2 * (length + width)
+    cornerCount = LSHAPE_CORNER_COUNT
+  } else if (shape === 'arco') {
+    const R = width / 2
+    // Dos lados largos + un extremo recto + semicírculo
+    const straightM = 2 * (length - R) + width
+    arcM = Math.PI * R
+    perimeter = straightM + arcM
+    cornerCount = ARCO_CORNER_COUNT
+  } else {
+    perimeter = 2 * (length + width)
+    cornerCount = CORNER_COUNT
+  }
+
+  // round absorbe el error de punto flotante en medidas snapeadas a la grilla
+  const straightSlots = Math.round((perimeter - arcM) / tileSize)
+  const borderBase = Math.max(0, straightSlots - cornerCount * CORNER_SLOT_DISCOUNT)
 
   const solariumM2 = solariums.reduce((sum, s) => sum + s.w * s.h, 0)
   const solariumBase = Math.ceil(solariumM2 / (tileSize * tileSize))
 
   const pieces: PieceLine[] = [
     { productKey: borderKey, label: BORDER_LABELS[borderKey], ...withWaste(borderBase) },
-    { productKey: 'esquina', label: 'ESQUINA 50x50', ...withWaste(CORNER_COUNT) },
+    { productKey: 'esquina', label: 'ESQUINA 50x50', ...withWaste(cornerCount) },
   ]
+  if (shape === 'arco' && arcM > 0) {
+    const cunaBase = Math.ceil(arcM / tileSize)
+    pieces.push({ productKey: 'cuna', label: 'BORDE ROMANO (CUÑA)', ...withWaste(cunaBase) })
+  }
   if (solariumBase > 0) {
     pieces.push({ productKey: 'solarium', label: 'SOLARIUM 50x50', ...withWaste(solariumBase) })
   }

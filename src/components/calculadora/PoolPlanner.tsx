@@ -1,11 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   GRID_SNAP,
   SCENE_MARGIN,
   SOLARIUM_MIN_SIDE,
   TILE_SIZE,
   snapToGrid,
+  type PoolShape,
   type SolariumArea,
 } from '@/lib/poolCalculator'
 
@@ -17,8 +19,11 @@ type DragState =
   | { mode: 'resize'; id: string; handle: Handle }
 
 interface PoolPlannerProps {
+  shape: PoolShape
   length: number
   width: number
+  length2: number
+  width2: number
   solariums: SolariumArea[]
   selectedId: string | null
   onSelect: (id: string | null) => void
@@ -26,6 +31,7 @@ interface PoolPlannerProps {
   onAddAt: (x: number, y: number) => void
   onExtendTo: (x: number, y: number) => void
   interactive: boolean
+  highlightDim?: 'length' | 'width' | null
 }
 
 const fmtM = (n: number) =>
@@ -86,7 +92,7 @@ const handlePositions = (a: SolariumArea): [Handle, number, number][] => [
 ]
 
 export default function PoolPlanner(props: PoolPlannerProps) {
-  const { length, width, solariums, selectedId, onSelect, onUpdate, onAddAt, onExtendTo, interactive } = props
+  const { shape, length, width, length2, width2, solariums, selectedId, onSelect, onUpdate, onAddAt, onExtendTo, interactive, highlightDim } = props
 
   const svgRef = useRef<SVGSVGElement>(null)
   const [drag, setDrag] = useState<DragState>({ mode: 'idle' })
@@ -107,7 +113,9 @@ export default function PoolPlanner(props: PoolPlannerProps) {
     const ro = new ResizeObserver(update)
     ro.observe(svg)
     return () => ro.disconnect()
-  }, [length])
+    // `expanded` se incluye porque al portalear el overlay el <svg> se
+    // re-monta como otro nodo: hay que re-observar el nuevo y recalcular escala
+  }, [length, expanded])
 
   // Escape: primero cierra pantalla completa, después deselecciona
   useEffect(() => {
@@ -242,82 +250,176 @@ export default function PoolPlanner(props: PoolPlannerProps) {
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#calcGridMajor)" />
       </g>
 
-      {/* Anillo de borde atérmico alrededor de la pileta */}
-      <g pointerEvents="none">
-        {([
-          [-T, -T, length + 2 * T, T],
-          [-T, width, length + 2 * T, T],
-          [-T, 0, T, width],
-          [length, 0, T, width],
-        ] as const).map(([x, y, w, h], i) => (
-          <g key={i}>
-            <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
-            <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
+      {/* Anillo de borde atérmico + pileta — varía según la forma */}
+      {shape === 'lshape' ? (() => {
+        const lx = length - length2
+        const wy = width - width2
+        // 6 strips de borde (una por cada arista del L) + 5 esquinas convexas
+        const strips: [number, number, number, number][] = [
+          [0, -T, lx, T],            // arista top
+          [lx, 0, T, wy],            // arista interior derecha (baja)
+          [lx, wy - T, length2, T],  // arista interior horizontal (estante)
+          [length, wy, T, width - wy], // arista derecha exterior (baja)
+          [0, width, length, T],     // arista bottom
+          [-T, 0, T, width],         // arista izquierda
+        ]
+        const convexCorners: [number, number][] = [
+          [-T, -T],           // esquina A: top-left
+          [lx, -T],           // esquina B: top del escalón
+          [length, wy - T],   // esquina D: top-right del tramo bajo
+          [length, width],    // esquina E: bottom-right
+          [-T, width],        // esquina F: bottom-left
+        ]
+        const poolPoints = `0,0 ${lx},0 ${lx},${wy} ${length},${wy} ${length},${width} 0,${width}`
+        return (
+          <g pointerEvents="none">
+            {strips.map(([x, y, w, h], i) => (
+              <g key={i}>
+                <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
+                <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
+              </g>
+            ))}
+            {convexCorners.map(([x, y], i) => (
+              <rect key={i} x={x} y={y} width={T} height={T}
+                fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
+            ))}
+            <polygon points={poolPoints} fill="#16323F" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+            <text x={(lx) / 2} y={width / 2 - px(4)} textAnchor="middle"
+              fontSize={px(15)} fontFamily="var(--font-display)" fontWeight={700}
+              letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
+              PILETA
+            </text>
+            <text x={(lx) / 2} y={width / 2 + px(14)} textAnchor="middle"
+              fontSize={px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
+              {fmtM(length)} × {fmtM(width)} m
+            </text>
           </g>
-        ))}
-        {/* Piezas de esquina */}
-        {([
-          [-T, -T], [length, -T], [-T, width], [length, width],
-        ] as const).map(([x, y], i) => (
-          <rect
-            key={i}
-            x={x} y={y} width={T} height={T}
-            fill="rgba(232,82,26,0.32)"
-            stroke="rgba(232,82,26,0.6)"
-            strokeWidth={px(1)}
-          />
-        ))}
-      </g>
+        )
+      })() : shape === 'arco' ? (() => {
+        const R = width / 2
+        const cx = length - R
+        // Strips rectos + arco de borde
+        const straightStrips: [number, number, number, number][] = [
+          [0, -T, cx, T],      // top recto
+          [0, width, cx, T],   // bottom recto
+          [-T, 0, T, width],   // lado izquierdo
+        ]
+        // Path del arco de borde: entre radio R (interior) y R+T (exterior)
+        const arcBorderPath = `M ${cx} 0 A ${R} ${R} 0 0 1 ${cx} ${width} L ${cx} ${width + T} A ${R + T} ${R + T} 0 0 0 ${cx} ${-T} Z`
+        // Path de la pileta con arco romano
+        const poolPath = `M 0 0 L ${cx} 0 A ${R} ${R} 0 0 1 ${cx} ${width} L 0 ${width} Z`
+        return (
+          <g pointerEvents="none">
+            {straightStrips.map(([x, y, w, h], i) => (
+              <g key={i}>
+                <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
+                <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
+              </g>
+            ))}
+            <path d={arcBorderPath} fill="rgba(232,82,26,0.1)" />
+            <path d={arcBorderPath} fill="url(#calcTicks)" />
+            {/* 2 esquinas convexas en el extremo recto */}
+            {([ [-T, -T], [-T, width] ] as const).map(([x, y], i) => (
+              <rect key={i} x={x} y={y} width={T} height={T}
+                fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
+            ))}
+            <path d={poolPath} fill="#16323F" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+            <text x={cx / 2} y={width / 2 - px(4)} textAnchor="middle"
+              fontSize={px(15)} fontFamily="var(--font-display)" fontWeight={700}
+              letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
+              PILETA
+            </text>
+            <text x={cx / 2} y={width / 2 + px(14)} textAnchor="middle"
+              fontSize={px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
+              {fmtM(length)} × {fmtM(width)} m
+            </text>
+          </g>
+        )
+      })() : (
+        /* Rectangular — original */
+        <g pointerEvents="none">
+          {([
+            [-T, -T, length + 2 * T, T],
+            [-T, width, length + 2 * T, T],
+            [-T, 0, T, width],
+            [length, 0, T, width],
+          ] as const).map(([x, y, w, h], i) => (
+            <g key={i}>
+              <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
+              <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
+            </g>
+          ))}
+          {([
+            [-T, -T], [length, -T], [-T, width], [length, width],
+          ] as const).map(([x, y], i) => (
+            <rect key={i} x={x} y={y} width={T} height={T}
+              fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
+          ))}
+          <rect x={0} y={0} width={length} height={width}
+            fill="#16323F" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+          <text x={length / 2} y={width / 2 - px(4)} textAnchor="middle"
+            fontSize={px(15)} fontFamily="var(--font-display)" fontWeight={700}
+            letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
+            PILETA
+          </text>
+          <text x={length / 2} y={width / 2 + px(14)} textAnchor="middle"
+            fontSize={px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
+            {fmtM(length)} × {fmtM(width)} m
+          </text>
+        </g>
+      )}
 
-      {/* Pileta */}
-      <g pointerEvents="none">
-        <rect
-          x={0} y={0} width={length} height={width}
-          fill="#16323F"
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth={px(1.5)}
-        />
-        <text
-          x={length / 2} y={width / 2 - px(4)}
-          textAnchor="middle"
-          fontSize={px(15)}
-          fontFamily="var(--font-display)"
-          fontWeight={700}
-          letterSpacing={px(2)}
-          fill="rgba(245,244,240,0.85)"
-        >
-          PILETA
-        </text>
-        <text
-          x={length / 2} y={width / 2 + px(14)}
-          textAnchor="middle"
-          fontSize={px(12)}
-          fontFamily="var(--font-body)"
-          fill="rgba(245,244,240,0.55)"
-        >
-          {fmtM(length)} × {fmtM(width)} m
-        </text>
-      </g>
+      {/* Cotas (se resaltan al enfocar el input de esa medida) */}
+      {(() => {
+        const hlLen = highlightDim === 'length'
+        const hlWid = highlightDim === 'width'
+        const lenC = hlLen ? 'var(--orange)' : dimColor
+        const widC = hlWid ? 'var(--orange)' : dimColor
+        return (
+          <g pointerEvents="none" fontFamily="var(--font-body)">
+            {/* Arista de la pileta resaltada junto a la cota activa */}
+            {hlLen && (
+              <line
+                x1={0} y1={width} x2={length} y2={width}
+                stroke="var(--orange)" strokeWidth={px(3)} strokeLinecap="round"
+              />
+            )}
+            {hlWid && (
+              <line
+                x1={length} y1={0} x2={length} y2={width}
+                stroke="var(--orange)" strokeWidth={px(3)} strokeLinecap="round"
+              />
+            )}
 
-      {/* Cotas */}
-      <g pointerEvents="none" stroke={dimColor} strokeWidth={px(1)}>
-        <line x1={0} y1={dimY} x2={length} y2={dimY} />
-        <line x1={0} y1={dimY - tick} x2={0} y2={dimY + tick} />
-        <line x1={length} y1={dimY - tick} x2={length} y2={dimY + tick} />
-        <line x1={dimX} y1={0} x2={dimX} y2={width} />
-        <line x1={dimX - tick} y1={0} x2={dimX + tick} y2={0} />
-        <line x1={dimX - tick} y1={width} x2={dimX + tick} y2={width} />
-      </g>
-      <g pointerEvents="none" fill={dimColor} fontFamily="var(--font-body)" fontSize={px(12)}>
-        <text x={length / 2} y={dimY + px(16)} textAnchor="middle">{fmtM(length)} m</text>
-        <text
-          x={dimX} y={width / 2}
-          textAnchor="middle"
-          transform={`rotate(90 ${dimX + px(16)} ${width / 2})`}
-        >
-          {fmtM(width)} m
-        </text>
-      </g>
+            {/* Cota de LARGO (abajo) */}
+            <g stroke={lenC} strokeWidth={px(hlLen ? 2 : 1)}>
+              <line x1={0} y1={dimY} x2={length} y2={dimY} />
+              <line x1={0} y1={dimY - tick} x2={0} y2={dimY + tick} />
+              <line x1={length} y1={dimY - tick} x2={length} y2={dimY + tick} />
+            </g>
+            <text
+              x={length / 2} y={dimY + px(16)} textAnchor="middle"
+              fill={lenC} fontSize={px(hlLen ? 13 : 12)} fontWeight={hlLen ? 700 : 400}
+            >
+              {fmtM(length)} m
+            </text>
+
+            {/* Cota de ANCHO (derecha) */}
+            <g stroke={widC} strokeWidth={px(hlWid ? 2 : 1)}>
+              <line x1={dimX} y1={0} x2={dimX} y2={width} />
+              <line x1={dimX - tick} y1={0} x2={dimX + tick} y2={0} />
+              <line x1={dimX - tick} y1={width} x2={dimX + tick} y2={width} />
+            </g>
+            <text
+              x={dimX} y={width / 2} textAnchor="middle"
+              transform={`rotate(90 ${dimX + px(16)} ${width / 2})`}
+              fill={widC} fontSize={px(hlWid ? 13 : 12)} fontWeight={hlWid ? 700 : 400}
+            >
+              {fmtM(width)} m
+            </text>
+          </g>
+        )
+      })()}
 
       {/* Solariums */}
       {solariums.map(area => {
@@ -422,19 +524,35 @@ export default function PoolPlanner(props: PoolPlannerProps) {
     </svg>
   )
 
-  return (
-    <div className={`calc-planner-wrap${expanded ? ' expanded' : ''}`}>
-      {expanded && (
-        <div className="calc-expand-bar">
-          <span className="calc-expand-title">PLANO INTERACTIVO</span>
-          <button className="calc-expand-close" onClick={() => setExpanded(false)}>
-            ✕ CERRAR
-          </button>
-        </div>
-      )}
+  // El overlay de pantalla completa se portalea al <body> para escapar de
+  // `.calc-planner-col` (que en el paso 4 es position: sticky): en iOS Safari
+  // un position: fixed dentro de un sticky se descoloca y la barra de cerrar
+  // quedaba fuera de alcance. Portaleado, el fixed es relativo al viewport.
+  const expandedOverlay = (
+    <div className="calc-planner-wrap expanded">
+      <div className="calc-expand-bar">
+        <span className="calc-expand-title">PLANO INTERACTIVO</span>
+        <button
+          type="button"
+          className="calc-expand-close"
+          onClick={() => setExpanded(false)}
+        >
+          ✕ CERRAR
+        </button>
+      </div>
       {svgEl}
+      <p className="calc-expand-hint-bar">
+        TOCÁ EL PLANO PARA AGREGAR · ARRASTRÁ PARA MOVER · ESTIRÁ DESDE LOS PUNTOS
+      </p>
+    </div>
+  )
+
+  return (
+    <div className="calc-planner-wrap">
+      {!expanded && svgEl}
       {!expanded && interactive && (
         <button
+          type="button"
           className="calc-expand-btn"
           onClick={() => setExpanded(true)}
           aria-label="Ver en pantalla completa"
@@ -442,11 +560,8 @@ export default function PoolPlanner(props: PoolPlannerProps) {
           ⤢
         </button>
       )}
-      {expanded && (
-        <p className="calc-expand-hint-bar">
-          TOCÁ EL PLANO PARA AGREGAR · ARRASTRÁ PARA MOVER · ESTIRÁ DESDE LOS PUNTOS
-        </p>
-      )}
+      {expanded && typeof document !== 'undefined' &&
+        createPortal(expandedOverlay, document.body)}
     </div>
   )
 }
