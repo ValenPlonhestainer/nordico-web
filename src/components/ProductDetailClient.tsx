@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Product } from '@/config/products'
@@ -44,6 +44,8 @@ export default function ProductDetailClient({
   const [mainImg, setMainImg] = useState(0)
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'desc' | 'info'>('desc')
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState(0)
 
   const displayImages =
     selectedVariant !== null && product.variants?.[selectedVariant]?.images?.length
@@ -73,6 +75,30 @@ export default function ProductDetailClient({
     ['Resistencia', 'Cloro, UV, intemperie'],
   ]
 
+  const openLightbox = useCallback((idx: number) => {
+    setLightboxIdx(idx)
+    setLightboxOpen(true)
+  }, [])
+
+  const closeLightbox = useCallback(() => setLightboxOpen(false), [])
+
+  const lbPrev = useCallback(() =>
+    setLightboxIdx(i => (i - 1 + displayImages.length) % displayImages.length), [displayImages.length])
+
+  const lbNext = useCallback(() =>
+    setLightboxIdx(i => (i + 1) % displayImages.length), [displayImages.length])
+
+  useEffect(() => {
+    if (!lightboxOpen) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox()
+      if (e.key === 'ArrowLeft') lbPrev()
+      if (e.key === 'ArrowRight') lbNext()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [lightboxOpen, closeLightbox, lbPrev, lbNext])
+
   return (
     <div style={{ paddingTop: '60px', background: 'var(--black)', minHeight: '100vh' }}>
 
@@ -92,7 +118,10 @@ export default function ProductDetailClient({
 
         {/* Galería */}
         <div>
-          <div style={{ position: 'relative', background: 'var(--dark2)', border: '1px solid var(--border-line)', aspectRatio: '1 / 1', overflow: 'hidden', marginBottom: '10px' }}>
+          <div
+            onClick={() => displayImages[mainImg] && openLightbox(mainImg)}
+            style={{ position: 'relative', background: 'var(--dark2)', border: '1px solid var(--border-line)', aspectRatio: '1 / 1', overflow: 'hidden', marginBottom: '10px', cursor: displayImages[mainImg] ? 'zoom-in' : 'default' }}
+          >
             {displayImages[mainImg] ? (
               <Image
                 src={displayImages[mainImg]}
@@ -361,6 +390,63 @@ export default function ProductDetailClient({
       )}
 
       <Footer />
+
+      {/* Lightbox */}
+      {lightboxOpen && (
+        <div
+          onClick={closeLightbox}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {/* Imagen */}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ position: 'relative', width: 'min(90vw, 90vh)', height: 'min(90vw, 90vh)', flexShrink: 0 }}
+          >
+            <Image
+              src={displayImages[lightboxIdx]}
+              alt={product.name}
+              fill
+              sizes="90vw"
+              style={{ objectFit: 'contain' }}
+              priority
+            />
+          </div>
+
+          {/* Botón cerrar */}
+          <button
+            onClick={closeLightbox}
+            style={{ position: 'fixed', top: '20px', right: '20px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: '44px', height: '44px', fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+
+          {/* Flechas de navegación */}
+          {displayImages.length > 1 && <>
+            <button
+              onClick={e => { e.stopPropagation(); lbPrev() }}
+              style={{ position: 'fixed', left: '12px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: '44px', height: '44px', fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              aria-label="Anterior"
+            >
+              ‹
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); lbNext() }}
+              style={{ position: 'fixed', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', width: '44px', height: '44px', fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              aria-label="Siguiente"
+            >
+              ›
+            </button>
+          </>}
+
+          {/* Contador */}
+          {displayImages.length > 1 && (
+            <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.6)', fontSize: '13px', letterSpacing: '0.08em' }}>
+              {lightboxIdx + 1} / {displayImages.length}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
