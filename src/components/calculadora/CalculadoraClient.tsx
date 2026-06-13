@@ -22,6 +22,7 @@ import {
   type BorderKey,
   type PoolShape,
   type PoolSide,
+  type RomanoKey,
   type SolariumArea,
 } from '@/lib/poolCalculator'
 
@@ -43,6 +44,7 @@ interface SavedState {
   width: number
   length2: number
   width2: number
+  romanoKey: RomanoKey
   solariums: SolariumArea[]
 }
 
@@ -56,10 +58,12 @@ export default function CalculadoraClient() {
   const [width, setWidth] = useState(4)
   const [length2, setLength2] = useState(3)
   const [width2, setWidth2] = useState(2)
+  const [romanoKey, setRomanoKey] = useState<RomanoKey>('2mts')
   const [solariums, setSolariums] = useState<SolariumArea[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // Medida resaltada en el plano según el input enfocado en el paso 3
-  const [highlightDim, setHighlightDim] = useState<'length' | 'width' | null>(null)
+  const [highlightDim, setHighlightDim] = useState<'length' | 'width' | 'length2' | 'width2' | null>(null)
+  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null)
   // Recién después de restaurar se permite guardar, para no pisar lo
   // guardado con los valores por defecto durante el montaje
   const [hydrated, setHydrated] = useState(false)
@@ -86,8 +90,9 @@ export default function CalculadoraClient() {
     const safeWidth = typeof saved.width === 'number' && Number.isFinite(saved.width)
       ? clamp(snapToGrid(saved.width), POOL_MIN_SIDE, POOL_MAX_SIDE)
       : 4
-    const safeBorder = saved.borderKey === 'recto' || saved.borderKey === 'ballena5050'
-      ? saved.borderKey
+    const VALID_BORDERS: BorderKey[] = ['ballena5050', 'ballena4050', 'recto', 'bordeballenal50x50']
+    const safeBorder = VALID_BORDERS.includes(saved.borderKey as BorderKey)
+      ? saved.borderKey as BorderKey
       : null
     // Compatibilidad con sesiones antiguas que guardaban shapeChosen: boolean
     const safeShape: PoolShape | null =
@@ -100,6 +105,7 @@ export default function CalculadoraClient() {
     const safeWidth2 = typeof saved.width2 === 'number' && Number.isFinite(saved.width2)
       ? clamp(snapToGrid(saved.width2), GRID_SNAP, safeWidth - GRID_SNAP)
       : Math.min(2, safeWidth - GRID_SNAP)
+    const safeRomanoKey: RomanoKey = saved.romanoKey === '3mts' ? '3mts' : '2mts'
     const safeSolariums = Array.isArray(saved.solariums)
       ? reconcileSolariums(
           saved.solariums.filter(s =>
@@ -119,6 +125,7 @@ export default function CalculadoraClient() {
     setWidth(safeWidth)
     setLength2(safeLength2)
     setWidth2(safeWidth2)
+    setRomanoKey(safeRomanoKey)
     setSolariums(safeSolariums)
     setStep(safeStep)
     setHydrated(true)
@@ -128,17 +135,17 @@ export default function CalculadoraClient() {
   // Guardar el progreso ante cada cambio (solo después de restaurar)
   useEffect(() => {
     if (!hydrated) return
-    const state: SavedState = { step, shape, borderKey, length, width, length2, width2, solariums }
+    const state: SavedState = { step, shape, borderKey, length, width, length2, width2, romanoKey, solariums }
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch { /* almacenamiento no disponible */ }
-  }, [hydrated, step, shape, borderKey, length, width, length2, width2, solariums])
+  }, [hydrated, step, shape, borderKey, length, width, length2, width2, romanoKey, solariums])
 
   const result = useMemo(
     () => borderKey && shape
-      ? calculatePool({ shape, length, width, length2, width2, borderKey, solariums })
+      ? calculatePool({ shape, length, width, length2, width2, romanoKey, borderKey, solariums })
       : null,
-    [shape, borderKey, length, width, length2, width2, solariums],
+    [shape, borderKey, length, width, length2, width2, romanoKey, solariums],
   )
 
   const setPoolSide = (side: 'length' | 'width', value: number) => {
@@ -244,6 +251,7 @@ export default function CalculadoraClient() {
             width={width}
             length2={length2}
             width2={width2}
+            romanoKey={romanoKey}
             solariums={solariums}
             selectedId={selectedId}
             onSelect={setSelectedId}
@@ -252,6 +260,7 @@ export default function CalculadoraClient() {
             onExtendTo={extendSolarium}
             interactive={step === 4}
             highlightDim={highlightDim}
+            highlightProduct={hoveredProduct}
           />
           <p className="calc-planner-hint">
             {step === 4
@@ -272,8 +281,10 @@ export default function CalculadoraClient() {
             width={width}
             length2={length2}
             width2={width2}
+            romanoKey={romanoKey}
             onSideChange={setPoolSide}
             onLShapeChange={setLShapeSide}
+            onRomanoKeyChange={setRomanoKey}
             onDimFocus={setHighlightDim}
             solariums={solariums}
             selectedId={selectedId}
@@ -285,7 +296,7 @@ export default function CalculadoraClient() {
           />
 
           {result && step === 5 && (
-            <ResultSummary result={result} products={products} />
+            <ResultSummary result={result} products={products} onHoverProduct={setHoveredProduct} />
           )}
         </div>
       </div>

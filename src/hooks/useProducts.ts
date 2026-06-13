@@ -14,18 +14,20 @@ export function useProducts() {
       .order('order', { ascending: true })
       .then(({ data, error }) => {
         if (error || !data || data.length === 0) return
-        setProducts(
-          data.map(p => {
-            const local = CATALOG_PRODUCTS.find(c => c.key === p.key)
-            return {
-              key: p.key,
-              name: local?.name ?? p.name,
-              priceUnit: p.price_unit,
-              images: (p.images && p.images.length > 0) ? p.images : (local?.images ?? []),
-              tag: p.tag ?? undefined,
-            }
-          })
-        )
+        const fromSupabase = data.map(p => {
+          const local = CATALOG_PRODUCTS.find(c => c.key === p.key)
+          return {
+            key: p.key,
+            name: local?.name ?? p.name,
+            priceUnit: p.price_unit,
+            images: (p.images && p.images.length > 0) ? p.images : (local?.images ?? []),
+            tag: p.tag ?? undefined,
+          }
+        })
+        // Incluir productos locales que no están en Supabase (con su precio local)
+        const supabaseKeys = new Set(fromSupabase.map(p => p.key))
+        const localOnly = CATALOG_PRODUCTS.filter(p => !supabaseKeys.has(p.key))
+        setProducts([...fromSupabase, ...localOnly])
       })
   }, [])
 

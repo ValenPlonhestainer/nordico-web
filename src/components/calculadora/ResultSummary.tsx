@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Product } from '@/config/products'
 import { buildPresupuestoQuery, WASTE_FACTOR, type CalcResult, type PieceLine } from '@/lib/poolCalculator'
@@ -10,9 +11,10 @@ const fmt = (n: number) =>
 interface ResultSummaryProps {
   result: CalcResult
   products: Product[]
+  onHoverProduct?: (key: string | null) => void
 }
 
-export default function ResultSummary({ result, products }: ResultSummaryProps) {
+export default function ResultSummary({ result, products, onHoverProduct }: ResultSummaryProps) {
   const router = useRouter()
   const [includeWaste, setIncludeWaste] = useState(true)
 
@@ -29,19 +31,36 @@ export default function ResultSummary({ result, products }: ResultSummaryProps) 
     <div className="calc-result">
       <div className="summary-title">TU CÁLCULO</div>
 
-      {result.pieces.map(piece => (
-        <div key={piece.productKey} className="summary-row">
-          <span className="label" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            <span className="calc-result-name">{piece.label}</span>
-            <span style={{ color: 'var(--orange)', fontFamily: 'var(--font-display)', fontWeight: 700 }}>
-              {includeWaste
-                ? `${piece.baseQty} + ${piece.wasteQty} desperdicio = ${piece.qty}`
-                : `× ${piece.baseQty}`}
+      {result.pieces.map(piece => {
+        const hasProduct = products.some(p => p.key === piece.productKey)
+        return (
+          <div key={piece.productKey} className="summary-row">
+            <span className="label" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              {hasProduct ? (
+                <Link
+                  href={`/productos/${piece.productKey}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="calc-result-name calc-result-link"
+                  title="Ver el producto y sus fotos"
+                  onMouseEnter={() => onHoverProduct?.(piece.productKey)}
+                  onMouseLeave={() => onHoverProduct?.(null)}
+                >
+                  {piece.label} <span aria-hidden="true">↗</span>
+                </Link>
+              ) : (
+                <span className="calc-result-name">{piece.label}</span>
+              )}
+              <span style={{ color: 'var(--orange)', fontFamily: 'var(--font-display)', fontWeight: 700 }}>
+                {includeWaste
+                  ? `${piece.baseQty} + ${piece.wasteQty} desperdicio = ${piece.qty}`
+                  : `× ${piece.baseQty}`}
+              </span>
             </span>
-          </span>
-          <span className="value">{fmt(qtyOf(piece) * priceFor(piece.productKey))}</span>
-        </div>
-      ))}
+            <span className="value">{fmt(qtyOf(piece) * priceFor(piece.productKey))}</span>
+          </div>
+        )
+      })}
 
       <div
         className={`summary-cash-option${includeWaste ? ' active' : ''}`}

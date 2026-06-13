@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { gsap } from 'gsap';
 import './PillNav.css';
 
@@ -19,6 +20,7 @@ const PillNav = ({
   initialLoadAnimation = true
 }) => {
   const resolvedPillTextColor = pillTextColor ?? baseColor;
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const circleRefs = useRef([]);
   const tlRefs = useRef([]);
@@ -111,6 +113,32 @@ const PillNav = ({
 
     return () => window.removeEventListener('resize', onResize);
   }, [items, ease, initialLoadAnimation]);
+
+  // Cierra el menú mobile con su animación (estado React + GSAP + hamburguesa)
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    const hamburger = hamburgerRef.current;
+    const menu = mobileMenuRef.current;
+    if (hamburger) {
+      const lines = hamburger.querySelectorAll('.hamburger-line');
+      gsap.to(lines[0], { rotation: 0, y: 0, duration: 0.3, ease });
+      gsap.to(lines[1], { rotation: 0, y: 0, duration: 0.3, ease });
+    }
+    if (menu) {
+      gsap.to(menu, {
+        opacity: 0, y: 10, duration: 0.2, ease,
+        transformOrigin: 'top center',
+        onComplete: () => { gsap.set(menu, { visibility: 'hidden' }); },
+      });
+    }
+  };
+
+  // La navegación client-side no desmonta el nav: cerrar el popover al
+  // cambiar de ruta para que no quede abierto al pasar de página
+  useEffect(() => {
+    closeMobileMenu();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const handleEnter = i => {
     const tl = tlRefs.current[i];
@@ -274,7 +302,7 @@ const PillNav = ({
                 <Link
                   href={item.href}
                   className={`mobile-menu-link${activeHref === item.href ? ' is-active' : ''}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                 >
                   {item.label}
                 </Link>
@@ -282,7 +310,7 @@ const PillNav = ({
                 <a
                   href={item.href}
                   className={`mobile-menu-link${activeHref === item.href ? ' is-active' : ''}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                 >
                   {item.label}
                 </a>

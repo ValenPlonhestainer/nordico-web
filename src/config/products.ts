@@ -28,8 +28,9 @@ export const CATALOG_PRODUCTS: Product[] = [
   { key: 'ballena5050', name: 'BORDE BALLENA 50X50', priceUnit: 9800, images: ['/img/Ballena Frente.png', '/img/Ballena Perfil.png'] },
   { key: 'bordeballenal50x50', name: 'BORDE BALLENA L 50X50', priceUnit: 9800, images: ['/img/Ballena L Frente.png', '/img/Ballena L Perfil.png'] },
   { key: 'ballena4050', name: 'BORDE BALLENA 40X50', priceUnit: 9000, images: ['/img/Ballena Frente.png', '/img/Ballena Perfil.png'] },
-  { key: 'esquina',     name: 'ESQUINA 50x50',             priceUnit: 10500, images: ['/img/Esquina Frente.png', '/img/Esquina Perfil.png'] },
-  { key: 'cuna',        name: 'BORDE ROMANO (CUÑA)', priceUnit: 6000, images: ['/img/Cuña Frente.png', '/img/Ballena Perfil.png'] },
+  { key: 'esquina50x50',     name: 'ESQUINA 50x50',      priceUnit: 10000, images: ['/img/Esquina Frente.png', '/img/Esquina Perfil.png'] },
+  { key: 'borderomano2mts', name: 'BORDE ROMANO 2MTS', priceUnit: 6500,  images: ['/img/Cuña Frente.png', '/img/Ballena Perfil.png'] },
+  { key: 'borderomano3mts', name: 'BORDE ROMANO 3MTS', priceUnit: 6500,  images: ['/img/Cuña Frente.png', '/img/Ballena Perfil.png'] },
 ]
 
 export const SERVICES: Service[] = [

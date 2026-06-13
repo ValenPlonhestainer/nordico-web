@@ -2488,7 +2488,7 @@ footer .links a:hover { color: var(--orange); }
   margin-bottom: 4px;
 }
 
-.calc-option-sub { font-size: 12px; color: var(--gray); }
+.calc-option-sub { font-size: 14px; color: var(--gray); }
 
 .calc-option-sub span { font-size: 10px; }
 
@@ -2715,7 +2715,7 @@ footer .links a:hover { color: var(--orange); }
   justify-content: space-between;
   padding: 12px;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--white2);

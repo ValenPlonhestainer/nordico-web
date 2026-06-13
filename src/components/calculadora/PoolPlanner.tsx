@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   GRID_SNAP,
+  ROMANO_RADII,
   SCENE_MARGIN,
   SOLARIUM_MIN_SIDE,
   TILE_SIZE,
   snapToGrid,
   type PoolShape,
+  type RomanoKey,
   type SolariumArea,
 } from '@/lib/poolCalculator'
 
@@ -24,6 +26,7 @@ interface PoolPlannerProps {
   width: number
   length2: number
   width2: number
+  romanoKey: RomanoKey
   solariums: SolariumArea[]
   selectedId: string | null
   onSelect: (id: string | null) => void
@@ -31,7 +34,8 @@ interface PoolPlannerProps {
   onAddAt: (x: number, y: number) => void
   onExtendTo: (x: number, y: number) => void
   interactive: boolean
-  highlightDim?: 'length' | 'width' | null
+  highlightDim?: 'length' | 'width' | 'length2' | 'width2' | null
+  highlightProduct?: string | null
 }
 
 const fmtM = (n: number) =>
@@ -92,7 +96,21 @@ const handlePositions = (a: SolariumArea): [Handle, number, number][] => [
 ]
 
 export default function PoolPlanner(props: PoolPlannerProps) {
-  const { shape, length, width, length2, width2, solariums, selectedId, onSelect, onUpdate, onAddAt, onExtendTo, interactive, highlightDim } = props
+  const { shape, length, width, length2, width2, romanoKey, solariums, selectedId, onSelect, onUpdate, onAddAt, onExtendTo, interactive, highlightDim, highlightProduct } = props
+
+  // Opacidades para el hover de productos en el resumen
+  const isBorderKey = (k: string | null | undefined) =>
+    k === 'recto' || k === 'ballena5050' || k === 'ballena4050' || k === 'bordeballenal50x50'
+  const anyHl = !!highlightProduct
+  const hlStrips = anyHl && isBorderKey(highlightProduct)
+  const hlCorners = anyHl && highlightProduct === 'esquina50x50'
+  const hlArc = anyHl && (highlightProduct === 'borderomano2mts' || highlightProduct === 'borderomano3mts')
+  const hlSolarium = anyHl && highlightProduct === 'solarium'
+  const tr = 'opacity 0.15s'
+  const oStrips  = anyHl ? (hlStrips   ? 1 : 0.12) : 1
+  const oCorners = anyHl ? (hlCorners  ? 1 : 0.12) : 1
+  const oArc     = anyHl ? (hlArc      ? 1 : 0.12) : 1
+  const oSolarium= anyHl ? (hlSolarium ? 1 : 0.12) : 1
 
   const svgRef = useRef<SVGSVGElement>(null)
   const [drag, setDrag] = useState<DragState>({ mode: 'idle' })
@@ -196,6 +214,23 @@ export default function PoolPlanner(props: PoolPlannerProps) {
   const handleSize = px(11)
   const handleHit = px(44)
 
+  // Marca de agua Nordico — usa icon.svg invertido a blanco (estilo CAD/blueprint)
+  const watSize = Math.min(length, width) * 0.42
+  const watCx = length / 2
+  const watCy = width / 2
+  const nordicoMark = (
+    <image
+      key="watermark"
+      href="/icon.svg"
+      x={watCx - watSize / 2}
+      y={watCy - watSize / 2}
+      width={watSize}
+      height={watSize}
+      pointerEvents="none"
+      style={{ filter: 'invert(1)', opacity: 0.1 }}
+    />
+  )
+
   const svgEl = (
     <svg
       ref={svgRef}
@@ -236,6 +271,11 @@ export default function PoolPlanner(props: PoolPlannerProps) {
             strokeWidth={px(1)}
           />
         </pattern>
+        {/* Losetas individuales para solariums: cada celda T×T con junta visible */}
+        <pattern id="calcSolariumTile" width={T} height={T} patternUnits="userSpaceOnUse">
+          <rect x={0} y={0} width={T} height={T} fill="rgba(232,82,26,0.08)" />
+          <rect x={px(1.5)} y={px(1.5)} width={T - px(3)} height={T - px(3)} fill="rgba(232,82,26,0.28)" />
+        </pattern>
       </defs>
 
       {/* Fondo + grilla (el fondo captura el click para agregar/deseleccionar) */}
@@ -273,63 +313,147 @@ export default function PoolPlanner(props: PoolPlannerProps) {
         const poolPoints = `0,0 ${lx},0 ${lx},${wy} ${length},${wy} ${length},${width} 0,${width}`
         return (
           <g pointerEvents="none">
-            {strips.map(([x, y, w, h], i) => (
-              <g key={i}>
-                <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
-                <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
-              </g>
-            ))}
-            {convexCorners.map(([x, y], i) => (
-              <rect key={i} x={x} y={y} width={T} height={T}
-                fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
-            ))}
+            <g style={{ opacity: oStrips, transition: tr }}>
+              {strips.map(([x, y, w, h], i) => (
+                <g key={i}>
+                  <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
+                  <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
+                </g>
+              ))}
+            </g>
+            <g style={{ opacity: oCorners, transition: tr }}>
+              {convexCorners.map(([x, y], i) => (
+                <rect key={i} x={x} y={y} width={T} height={T}
+                  fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
+              ))}
+            </g>
             <polygon points={poolPoints} fill="#16323F" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
-            <text x={(lx) / 2} y={width / 2 - px(4)} textAnchor="middle"
+            {/* Resalte de aristas del recorte */}
+            {highlightDim === 'length2' && (
+              <g pointerEvents="none">
+                <line x1={lx} y1={wy} x2={length} y2={wy}
+                  stroke="var(--orange)" strokeWidth={px(3)} strokeLinecap="round" />
+                <line x1={lx} y1={wy + 0.4} x2={length} y2={wy + 0.4} stroke="var(--orange)" strokeWidth={px(1)} />
+                <line x1={lx} y1={wy + 0.25} x2={lx} y2={wy + 0.55} stroke="var(--orange)" strokeWidth={px(1)} />
+                <line x1={length} y1={wy + 0.25} x2={length} y2={wy + 0.55} stroke="var(--orange)" strokeWidth={px(1)} />
+                <text x={lx + length2 / 2} y={wy + 0.4 + px(16)} textAnchor="middle"
+                  fill="var(--orange)" fontSize={px(13)} fontWeight={700} fontFamily="var(--font-body)">
+                  {fmtM(length2)} m
+                </text>
+              </g>
+            )}
+            {highlightDim === 'width2' && (
+              <g pointerEvents="none">
+                <line x1={lx} y1={0} x2={lx} y2={wy}
+                  stroke="var(--orange)" strokeWidth={px(3)} strokeLinecap="round" />
+                <line x1={lx + 0.4} y1={0} x2={lx + 0.4} y2={wy} stroke="var(--orange)" strokeWidth={px(1)} />
+                <line x1={lx + 0.25} y1={0} x2={lx + 0.55} y2={0} stroke="var(--orange)" strokeWidth={px(1)} />
+                <line x1={lx + 0.25} y1={wy} x2={lx + 0.55} y2={wy} stroke="var(--orange)" strokeWidth={px(1)} />
+                <text x={lx + 0.4} y={wy / 2} textAnchor="middle"
+                  transform={`rotate(90 ${lx + 0.4 + px(16)} ${wy / 2})`}
+                  fill="var(--orange)" fontSize={px(13)} fontWeight={700} fontFamily="var(--font-body)">
+                  {fmtM(width2)} m
+                </text>
+              </g>
+            )}
+            {nordicoMark}
+            <text x={(lx) / 2} y={watCy + watSize / 2 + px(18)} textAnchor="middle"
               fontSize={px(15)} fontFamily="var(--font-display)" fontWeight={700}
               letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
               PILETA
             </text>
-            <text x={(lx) / 2} y={width / 2 + px(14)} textAnchor="middle"
+            <text x={(lx) / 2} y={watCy + watSize / 2 + px(34)} textAnchor="middle"
               fontSize={px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
               {fmtM(length)} × {fmtM(width)} m
             </text>
           </g>
         )
       })() : shape === 'arco' ? (() => {
-        const R = width / 2
-        const cx = length - R
-        // Strips rectos + arco de borde
+        const R = ROMANO_RADII[romanoKey]
+        // El arco está centrado en (length, cy) — el lado derecho del rectángulo principal
+        const cy = width / 2
+        const arcTopY = Math.max(0, cy - R)
+        const arcBotY = Math.min(width, cy + R)
+        const hasShoulders = width > 2 * R + 0.001
+
+        // Strips de borde recto
         const straightStrips: [number, number, number, number][] = [
-          [0, -T, cx, T],      // top recto
-          [0, width, cx, T],   // bottom recto
-          [-T, 0, T, width],   // lado izquierdo
+          [0, -T, length, T],
+          [-T, 0, T, width],
+          [0, width, length, T],
+          ...(hasShoulders ? [
+            [length, 0, T, arcTopY] as [number, number, number, number],
+            [length, arcBotY, T, width - arcBotY] as [number, number, number, number],
+          ] : []),
         ]
-        // Path del arco de borde: entre radio R (interior) y R+T (exterior)
-        const arcBorderPath = `M ${cx} 0 A ${R} ${R} 0 0 1 ${cx} ${width} L ${cx} ${width + T} A ${R + T} ${R + T} 0 0 0 ${cx} ${-T} Z`
-        // Path de la pileta con arco romano
-        const poolPath = `M 0 0 L ${cx} 0 A ${R} ${R} 0 0 1 ${cx} ${width} L 0 ${width} Z`
+
+        // Piezas individuales de cuña: abanico de θ=-π/2 (arriba) a θ=π/2 (abajo) pasando por 0° (derecha)
+        const numPieces = Math.ceil(Math.PI * R / T)
+        const wedgePaths: string[] = []
+        for (let i = 0; i < numPieces; i++) {
+          const θ1 = -Math.PI / 2 + i * (Math.PI / numPieces)
+          const θ2 = -Math.PI / 2 + (i + 1) * (Math.PI / numPieces)
+          const xi1 = length + R * Math.cos(θ1);         const yi1 = cy + R * Math.sin(θ1)
+          const xi2 = length + R * Math.cos(θ2);         const yi2 = cy + R * Math.sin(θ2)
+          const xo1 = length + (R + T) * Math.cos(θ1);  const yo1 = cy + (R + T) * Math.sin(θ1)
+          const xo2 = length + (R + T) * Math.cos(θ2);  const yo2 = cy + (R + T) * Math.sin(θ2)
+          // sweep=1 (CW en SVG) va hacia la derecha para este arco
+          wedgePaths.push(
+            `M ${xi1} ${yi1} A ${R} ${R} 0 0 1 ${xi2} ${yi2} L ${xo2} ${yo2} A ${R + T} ${R + T} 0 0 0 ${xo1} ${yo1} Z`
+          )
+        }
+
+        const corners: [number, number][] = [
+          [-T, -T], [-T, width],
+          ...(hasShoulders ? [[length, -T], [length, width]] as [number, number][] : []),
+        ]
+
         return (
           <g pointerEvents="none">
-            {straightStrips.map(([x, y, w, h], i) => (
-              <g key={i}>
-                <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
-                <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
-              </g>
-            ))}
-            <path d={arcBorderPath} fill="rgba(232,82,26,0.1)" />
-            <path d={arcBorderPath} fill="url(#calcTicks)" />
-            {/* 2 esquinas convexas en el extremo recto */}
-            {([ [-T, -T], [-T, width] ] as const).map(([x, y], i) => (
-              <rect key={i} x={x} y={y} width={T} height={T}
-                fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
-            ))}
-            <path d={poolPath} fill="#16323F" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
-            <text x={cx / 2} y={width / 2 - px(4)} textAnchor="middle"
+            {/* Borde recto */}
+            <g style={{ opacity: oStrips, transition: tr }}>
+              {straightStrips.map(([x, y, w, h], i) => (
+                <g key={i}>
+                  <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
+                  <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
+                </g>
+              ))}
+            </g>
+            {/* Cuñas del arco romano — piezas individuales */}
+            <g style={{ opacity: oArc, transition: tr }}>
+              {wedgePaths.map((d, i) => (
+                <path key={i} d={d}
+                  fill="rgba(232,82,26,0.15)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
+              ))}
+            </g>
+            {/* Esquinas */}
+            <g style={{ opacity: oCorners, transition: tr }}>
+              {corners.map(([x, y], i) => (
+                <rect key={i} x={x} y={y} width={T} height={T}
+                  fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
+              ))}
+            </g>
+            {/* Pileta: rect + círculo del arco por separado para garantizar el relleno */}
+            <rect x={0} y={0} width={length} height={width} fill="#16323F" />
+            <circle cx={length} cy={cy} r={R} fill="#16323F" />
+            {/* Contorno de la pileta */}
+            <line x1={0} y1={0} x2={length} y2={0} stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+            <line x1={0} y1={0} x2={0} y2={width} stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+            <line x1={0} y1={width} x2={length} y2={width} stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+            {hasShoulders && <>
+              <line x1={length} y1={0} x2={length} y2={arcTopY} stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+              <line x1={length} y1={arcBotY} x2={length} y2={width} stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+            </>}
+            <path d={`M ${length} ${arcTopY} A ${R} ${R} 0 0 1 ${length} ${arcBotY}`}
+              fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
+            {/* Label */}
+            {nordicoMark}
+            <text x={length / 2} y={watCy + watSize / 2 + px(18)} textAnchor="middle"
               fontSize={px(15)} fontFamily="var(--font-display)" fontWeight={700}
               letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
               PILETA
             </text>
-            <text x={cx / 2} y={width / 2 + px(14)} textAnchor="middle"
+            <text x={length / 2} y={watCy + watSize / 2 + px(34)} textAnchor="middle"
               fontSize={px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
               {fmtM(length)} × {fmtM(width)} m
             </text>
@@ -338,31 +462,36 @@ export default function PoolPlanner(props: PoolPlannerProps) {
       })() : (
         /* Rectangular — original */
         <g pointerEvents="none">
-          {([
-            [-T, -T, length + 2 * T, T],
-            [-T, width, length + 2 * T, T],
-            [-T, 0, T, width],
-            [length, 0, T, width],
-          ] as const).map(([x, y, w, h], i) => (
-            <g key={i}>
-              <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
-              <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
-            </g>
-          ))}
-          {([
-            [-T, -T], [length, -T], [-T, width], [length, width],
-          ] as const).map(([x, y], i) => (
-            <rect key={i} x={x} y={y} width={T} height={T}
-              fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
-          ))}
+          <g style={{ opacity: oStrips, transition: tr }}>
+            {([
+              [-T, -T, length + 2 * T, T],
+              [-T, width, length + 2 * T, T],
+              [-T, 0, T, width],
+              [length, 0, T, width],
+            ] as const).map(([x, y, w, h], i) => (
+              <g key={i}>
+                <rect x={x} y={y} width={w} height={h} fill="rgba(232,82,26,0.1)" />
+                <rect x={x} y={y} width={w} height={h} fill="url(#calcTicks)" />
+              </g>
+            ))}
+          </g>
+          <g style={{ opacity: oCorners, transition: tr }}>
+            {([
+              [-T, -T], [length, -T], [-T, width], [length, width],
+            ] as const).map(([x, y], i) => (
+              <rect key={i} x={x} y={y} width={T} height={T}
+                fill="rgba(232,82,26,0.32)" stroke="rgba(232,82,26,0.6)" strokeWidth={px(1)} />
+            ))}
+          </g>
           <rect x={0} y={0} width={length} height={width}
             fill="#16323F" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
-          <text x={length / 2} y={width / 2 - px(4)} textAnchor="middle"
+          {nordicoMark}
+          <text x={length / 2} y={watCy + watSize / 2 + px(18)} textAnchor="middle"
             fontSize={px(15)} fontFamily="var(--font-display)" fontWeight={700}
             letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
             PILETA
           </text>
-          <text x={length / 2} y={width / 2 + px(14)} textAnchor="middle"
+          <text x={length / 2} y={watCy + watSize / 2 + px(34)} textAnchor="middle"
             fontSize={px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
             {fmtM(length)} × {fmtM(width)} m
           </text>
@@ -386,7 +515,7 @@ export default function PoolPlanner(props: PoolPlannerProps) {
             )}
             {hlWid && (
               <line
-                x1={length} y1={0} x2={length} y2={width}
+                x1={0} y1={0} x2={0} y2={width}
                 stroke="var(--orange)" strokeWidth={px(3)} strokeLinecap="round"
               />
             )}
@@ -404,19 +533,26 @@ export default function PoolPlanner(props: PoolPlannerProps) {
               {fmtM(length)} m
             </text>
 
-            {/* Cota de ANCHO (derecha) */}
-            <g stroke={widC} strokeWidth={px(hlWid ? 2 : 1)}>
-              <line x1={dimX} y1={0} x2={dimX} y2={width} />
-              <line x1={dimX - tick} y1={0} x2={dimX + tick} y2={0} />
-              <line x1={dimX - tick} y1={width} x2={dimX + tick} y2={width} />
-            </g>
-            <text
-              x={dimX} y={width / 2} textAnchor="middle"
-              transform={`rotate(90 ${dimX + px(16)} ${width / 2})`}
-              fill={widC} fontSize={px(hlWid ? 13 : 12)} fontWeight={hlWid ? 700 : 400}
-            >
-              {fmtM(width)} m
-            </text>
+            {/* Cota de ANCHO (izquierda) */}
+            {(() => {
+              const dxL = -(T + 0.7)
+              return (
+                <>
+                  <g stroke={widC} strokeWidth={px(hlWid ? 2 : 1)}>
+                    <line x1={dxL} y1={0} x2={dxL} y2={width} />
+                    <line x1={dxL - tick} y1={0} x2={dxL + tick} y2={0} />
+                    <line x1={dxL - tick} y1={width} x2={dxL + tick} y2={width} />
+                  </g>
+                  <text
+                    x={dxL} y={width / 2} textAnchor="middle"
+                    transform={`rotate(90 ${dxL - px(16)} ${width / 2})`}
+                    fill={widC} fontSize={px(hlWid ? 13 : 12)} fontWeight={hlWid ? 700 : 400}
+                  >
+                    {fmtM(width)} m
+                  </text>
+                </>
+              )
+            })()}
           </g>
         )
       })()}
@@ -424,25 +560,27 @@ export default function PoolPlanner(props: PoolPlannerProps) {
       {/* Solariums */}
       {solariums.map(area => {
         const isSelected = area.id === selectedId
+        const solOpacity = hlSolarium ? 1 : anyHl ? 0.12 : 1
         const showLabel = area.w * pxScale > 55 && area.h * pxScale > 30
         const hit = Math.min(handleHit, Math.min(area.w, area.h) / 2)
         const knob = Math.min(handleSize, Math.min(area.w, area.h) / 3)
         return (
-          <g key={area.id}>
+          <g key={area.id} style={{ opacity: solOpacity, transition: tr }}>
+            {/* Losetas individuales del solarium */}
             <rect
               x={area.x} y={area.y} width={area.w} height={area.h}
-              fill={isSelected ? 'rgba(232,82,26,0.22)' : 'rgba(232,82,26,0.14)'}
+              fill="url(#calcSolariumTile)"
+              pointerEvents="none"
+            />
+            {/* Contorno interactivo (selección / hover) */}
+            <rect
+              x={area.x} y={area.y} width={area.w} height={area.h}
+              fill={isSelected ? 'rgba(232,82,26,0.12)' : 'none'}
               stroke="var(--orange)"
               strokeWidth={px(isSelected ? 2 : 1.2)}
               strokeDasharray={isSelected ? undefined : `${px(5)} ${px(4)}`}
               style={{ cursor: interactive ? 'move' : 'default' }}
               onPointerDown={e => onAreaPointerDown(e, area)}
-            />
-            {/* Grilla de losetas dentro del solarium */}
-            <rect
-              x={area.x} y={area.y} width={area.w} height={area.h}
-              fill="url(#calcTicks)"
-              pointerEvents="none"
             />
             {showLabel && (
               <g pointerEvents="none" textAnchor="middle" fontFamily="var(--font-body)">

@@ -3,7 +3,9 @@
 // Unidades: metros. Origen de coordenadas = esquina superior izquierda de la pileta.
 
 export type PoolShape = 'rect' | 'lshape' | 'arco'
-export type BorderKey = 'recto' | 'ballena5050'
+export type BorderKey = 'ballena5050' | 'ballena4050' | 'recto' | 'bordeballenal50x50'
+export const ROMANO_RADII = { '2mts': 1, '3mts': 1.5 } as const
+export type RomanoKey = keyof typeof ROMANO_RADII
 export type PoolSide = 'top' | 'bottom' | 'left' | 'right'
 
 export interface Rect {
@@ -19,10 +21,11 @@ export interface SolariumArea extends Rect {
 
 export interface PoolConfig {
   shape: PoolShape
-  length: number   // m, lado largo (eje X)
-  width: number    // m, lado corto (eje Y)
-  length2?: number // lshape: ancho horizontal del recorte (esquina superior derecha)
-  width2?: number  // lshape: alto vertical del recorte (esquina superior derecha)
+  length: number      // m, lado largo (eje X)
+  width: number       // m, lado corto (eje Y)
+  length2?: number    // lshape: ancho horizontal del recorte (esquina superior derecha)
+  width2?: number     // lshape: alto vertical del recorte (esquina superior derecha)
+  romanoKey?: RomanoKey // arco: modelo de borde romano que define el radio del arco
   borderKey: BorderKey
   solariums: SolariumArea[]
 }
@@ -55,8 +58,10 @@ export const ARCO_CORNER_COUNT = 2   // arco romano: 2 esquinas (en el extremo r
 export const CORNER_SLOT_DISCOUNT = 1
 
 export const BORDER_LABELS: Record<BorderKey, string> = {
-  recto: 'BORDE L 50x50',
-  ballena5050: 'BORDE BALLENA 50X50',
+  ballena5050:      'BORDE BALLENA 50X50',
+  ballena4050:      'BORDE BALLENA 40X50',
+  recto:            'BORDE L 50x50',
+  bordeballenal50x50: 'BORDE BALLENA L 50X50',
 }
 
 export const POOL_MIN_SIDE = 2
@@ -98,12 +103,14 @@ export function calculatePool(config: PoolConfig, tileSize: number = TILE_SIZE):
     perimeter = 2 * (length + width)
     cornerCount = LSHAPE_CORNER_COUNT
   } else if (shape === 'arco') {
-    const R = width / 2
-    // Dos lados largos + un extremo recto + semicírculo
-    const straightM = 2 * (length - R) + width
+    // El radio lo define el borde romano elegido: 2MTS→R=1m, 3MTS→R=1.5m
+    const R = ROMANO_RADII[config.romanoKey ?? '2mts']
+    const shoulders = Math.max(0, width - 2 * R) // dos hombros laterales
+    // Dos lados largos + extremo recto + hombros + semicírculo
+    const straightM = 2 * (length - R) + width + shoulders
     arcM = Math.PI * R
     perimeter = straightM + arcM
-    cornerCount = ARCO_CORNER_COUNT
+    cornerCount = width > 2 * R ? 4 : 2 // con hombros hay 4 esquinas, sin hombros 2
   } else {
     perimeter = 2 * (length + width)
     cornerCount = CORNER_COUNT
@@ -118,11 +125,14 @@ export function calculatePool(config: PoolConfig, tileSize: number = TILE_SIZE):
 
   const pieces: PieceLine[] = [
     { productKey: borderKey, label: BORDER_LABELS[borderKey], ...withWaste(borderBase) },
-    { productKey: 'esquina', label: 'ESQUINA 50x50', ...withWaste(cornerCount) },
+    { productKey: 'esquina50x50', label: 'ESQUINA 50x50', ...withWaste(cornerCount) },
   ]
   if (shape === 'arco' && arcM > 0) {
+    const rk = config.romanoKey ?? '2mts'
     const cunaBase = Math.ceil(arcM / tileSize)
-    pieces.push({ productKey: 'cuna', label: 'BORDE ROMANO (CUÑA)', ...withWaste(cunaBase) })
+    const cunaKey = rk === '3mts' ? 'borderomano3mts' : 'borderomano2mts'
+    const cunaLabel = rk === '3mts' ? 'BORDE ROMANO 3MTS' : 'BORDE ROMANO 2MTS'
+    pieces.push({ productKey: cunaKey, label: cunaLabel, ...withWaste(cunaBase) })
   }
   if (solariumBase > 0) {
     pieces.push({ productKey: 'solarium', label: 'SOLARIUM 50x50', ...withWaste(solariumBase) })

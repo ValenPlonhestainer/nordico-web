@@ -6,17 +6,19 @@ import {
   BORDER_LABELS,
   POOL_MIN_SIDE,
   POOL_MAX_SIDE,
+  ROMANO_RADII,
   SIDE_SOLARIUM_DEPTH,
   TILE_SIZE,
   type BorderKey,
   type PoolShape,
   type PoolSide,
+  type RomanoKey,
   type SolariumArea,
 } from '@/lib/poolCalculator'
 
 export type Step = 1 | 2 | 3 | 4 | 5
 
-const BORDER_KEYS: BorderKey[] = ['recto', 'ballena5050']
+const BORDER_KEYS: BorderKey[] = ['ballena5050', 'ballena4050', 'recto', 'bordeballenal50x50']
 
 interface StepPanelsProps {
   step: Step
@@ -29,9 +31,11 @@ interface StepPanelsProps {
   width: number
   length2: number
   width2: number
+  romanoKey: RomanoKey
   onSideChange: (side: 'length' | 'width', value: number) => void
   onLShapeChange: (side: 'length2' | 'width2', value: number) => void
-  onDimFocus: (side: 'length' | 'width' | null) => void
+  onRomanoKeyChange: (k: RomanoKey) => void
+  onDimFocus: (side: 'length' | 'width' | 'length2' | 'width2' | null) => void
   solariums: SolariumArea[]
   selectedId: string | null
   onSelect: (id: string | null) => void
@@ -54,8 +58,9 @@ const m2 = (n: number) =>
 export default function StepPanels(props: StepPanelsProps) {
   const {
     step, setStep, shape, onChooseShape, borderKey, onChooseBorder,
-    length, width, length2, width2, onSideChange, onLShapeChange, onDimFocus,
-    solariums, selectedId, onSelect, onUpdateSolarium, onAddSide, onRemoveArea, products,
+    length, width, length2, width2, romanoKey, onSideChange, onLShapeChange,
+    onRomanoKeyChange, onDimFocus, solariums, selectedId, onSelect,
+    onUpdateSolarium, onAddSide, onRemoveArea, products,
   } = props
 
   const shapeLabel =
@@ -176,7 +181,14 @@ export default function StepPanels(props: StepPanelsProps) {
             >
               <div className="calc-option-check">✓</div>
               <svg viewBox="0 0 64 40" className="calc-option-icon" aria-hidden="true">
-                <path d="M6 6 L44 6 A14 14 0 0 1 44 34 L6 34 Z" fill="rgba(232,82,26,0.15)" stroke="currentColor" strokeWidth="2" />
+                <rect x="4" y="5" width="46" height="30" fill="rgba(232,82,26,0.15)" />
+                <circle cx="50" cy="20" r="12" fill="rgba(232,82,26,0.15)" />
+                <line x1="4"  y1="5"  x2="50" y2="5"  stroke="currentColor" strokeWidth="2" />
+                <line x1="4"  y1="5"  x2="4"  y2="35" stroke="currentColor" strokeWidth="2" />
+                <line x1="4"  y1="35" x2="50" y2="35" stroke="currentColor" strokeWidth="2" />
+                <line x1="50" y1="5"  x2="50" y2="8"  stroke="currentColor" strokeWidth="2" />
+                <line x1="50" y1="32" x2="50" y2="35" stroke="currentColor" strokeWidth="2" />
+                <path d="M 50 8 A 12 12 0 0 1 50 32" fill="none" stroke="currentColor" strokeWidth="2" />
               </svg>
               <div className="calc-option-name">ARCO ROMANO</div>
               <div className="calc-option-sub">Un extremo semicircular</div>
@@ -216,7 +228,7 @@ export default function StepPanels(props: StepPanelsProps) {
                   />
                 </div>
                 <div className="calc-option-name">{product.name}</div>
-                <div className="calc-option-sub">${product.priceUnit.toLocaleString('es-AR')} <span>c/u</span></div>
+                <div className="calc-option-sub" style={{ fontSize: 16, fontWeight: 700, color: 'var(--cream)' }}>${product.priceUnit.toLocaleString('es-AR')} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gray)' }}>c/u</span></div>
               </div>
             ))}
           </div>
@@ -304,7 +316,7 @@ export default function StepPanels(props: StepPanelsProps) {
                         inputMode="decimal"
                         value={dimDrafts[side] ?? String(value)}
                         onChange={e => setDimDrafts(d => ({ ...d, [side]: e.target.value }))}
-                        onFocus={() => {}}
+                        onFocus={() => onDimFocus(side)}
                         onBlur={() => {
                           const raw = dimDrafts[side]
                           if (raw !== null) {
@@ -312,6 +324,7 @@ export default function StepPanels(props: StepPanelsProps) {
                             if (!isNaN(v)) onLShapeChange(side, v)
                           }
                           setDimDrafts(d => ({ ...d, [side]: null }))
+                          onDimFocus(null)
                         }}
                         onKeyDown={blurOnEnter}
                       />
@@ -332,9 +345,34 @@ export default function StepPanels(props: StepPanelsProps) {
           )}
 
           {shape === 'arco' && (
-            <p className="calc-step-note" style={{ marginTop: '16px', color: 'rgba(232,82,26,0.9)' }}>
-              El arco romano reemplaza uno de los extremos cortos. El radio del semicírculo es la mitad del ANCHO ({(width / 2).toLocaleString('es-AR', { minimumFractionDigits: 1 })} m).
-            </p>
+            <>
+              <p className="calc-step-note" style={{ marginTop: '16px' }}>
+                <strong>Modelo de Borde Romano</strong> — elegí cuál vas a usar en el arco. Determina el radio y la profundidad del semicírculo.
+              </p>
+              <div className="calc-options">
+                {(['2mts', '3mts'] as RomanoKey[]).map(rk => {
+                  const R = ROMANO_RADII[rk]
+                  const chord = 2 * R
+                  const valid = width >= chord
+                  return (
+                    <div
+                      key={rk}
+                      className={`calc-option${romanoKey === rk ? ' selected' : ''}${!valid ? ' disabled' : ''}`}
+                      onClick={() => valid && onRomanoKeyChange(rk)}
+                      title={!valid ? `Requiere ancho ≥ ${chord} m` : undefined}
+                    >
+                      <div className="calc-option-check">✓</div>
+                      <svg viewBox="0 0 64 50" className="calc-option-icon" aria-hidden="true">
+                        <path d={`M 32 6 L 58 6 L 58 44 L 32 44 L 32 37 A 7 7 0 0 0 32 13 Z`} fill="rgba(232,82,26,0.15)" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                      <div className="calc-option-name">BORDE ROMANO {rk.toUpperCase()}</div>
+                      <div className="calc-option-sub">Radio {R} m · Cuerda {chord} m{!valid ? ` (ancho insuficiente)` : ''}</div>
+                      {!valid && <span className="calc-option-badge">ANCHO INSUF.</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           )}
 
           <div className="calc-step-actions">
