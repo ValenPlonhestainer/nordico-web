@@ -384,12 +384,12 @@ export default function PoolPlanner(props: PoolPlannerProps) {
             )}
             {nordicoMark}
             <text x={(lx) / 2} y={watCy + watSize / 2 + px(18)} textAnchor="middle"
-              fontSize={isMobile ? px(11) : px(15)} fontFamily="var(--font-display)" fontWeight={700}
+              fontSize={px(15)} display={isMobile ? 'none' : undefined} fontFamily="var(--font-display)" fontWeight={700}
               letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
               PILETA
             </text>
             <text x={(lx) / 2} y={watCy + watSize / 2 + px(34)} textAnchor="middle"
-              fontSize={isMobile ? px(9) : px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
+              fontSize={px(12)} display={isMobile ? 'none' : undefined} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
               {fmtM(length)} × {fmtM(width)} m
             </text>
           </g>
@@ -475,12 +475,12 @@ export default function PoolPlanner(props: PoolPlannerProps) {
             {/* Label */}
             {nordicoMark}
             <text x={length / 2} y={watCy + watSize / 2 + px(18)} textAnchor="middle"
-              fontSize={isMobile ? px(11) : px(15)} fontFamily="var(--font-display)" fontWeight={700}
+              fontSize={px(15)} display={isMobile ? 'none' : undefined} fontFamily="var(--font-display)" fontWeight={700}
               letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
               PILETA
             </text>
             <text x={length / 2} y={watCy + watSize / 2 + px(34)} textAnchor="middle"
-              fontSize={isMobile ? px(9) : px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
+              fontSize={px(12)} display={isMobile ? 'none' : undefined} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
               {fmtM(length)} × {fmtM(width)} m
             </text>
           </g>
@@ -513,12 +513,12 @@ export default function PoolPlanner(props: PoolPlannerProps) {
             fill="#16323F" stroke="rgba(255,255,255,0.18)" strokeWidth={px(1.5)} />
           {nordicoMark}
           <text x={length / 2} y={watCy + watSize / 2 + px(18)} textAnchor="middle"
-            fontSize={isMobile ? px(11) : px(15)} fontFamily="var(--font-display)" fontWeight={700}
+            fontSize={px(15)} display={isMobile ? 'none' : undefined} fontFamily="var(--font-display)" fontWeight={700}
             letterSpacing={px(2)} fill="rgba(245,244,240,0.85)">
             PILETA
           </text>
           <text x={length / 2} y={watCy + watSize / 2 + px(34)} textAnchor="middle"
-            fontSize={isMobile ? px(9) : px(12)} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
+            fontSize={px(12)} display={isMobile ? 'none' : undefined} fontFamily="var(--font-body)" fill="rgba(245,244,240,0.55)">
             {fmtM(length)} × {fmtM(width)} m
           </text>
         </g>
