@@ -2036,8 +2036,12 @@ footer .footer-credit span {
   .nav-links-cta-mobile { display: block; padding-top: 16px; }
   .nav-links-cta-mobile .btn-primary { display: block; text-align: center; width: 100%; }
 
-  footer { flex-direction: column; gap: 16px; text-align: center; padding: 32px 24px; }
-  footer .links { justify-content: center; flex-wrap: wrap; gap: 16px; }
+  footer { padding: 36px 24px 24px; }
+  footer .footer-main { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 24px; }
+  footer .footer-main .links { justify-self: unset; }
+  footer .links { justify-content: center; flex-wrap: wrap; gap: 14px; }
+  footer .copy { text-align: center; }
+  footer .footer-credit { text-align: center; padding-top: 16px; }
 
   .home-hero-content { padding: 60px 24px 80px; }
   .home-hero-badges, .home-hero-scroll { display: none; }
