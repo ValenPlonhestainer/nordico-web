@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import Footer from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: 'Términos y Condiciones',
-  description: 'Términos y condiciones de uso del sitio web de Nordico. Política de privacidad y protección de datos personales conforme a la Ley 25.326 Argentina.',
+  description: 'Términos y condiciones de uso del sitio web de Nordico. Protección de datos personales conforme a la Ley 25.326 Argentina.',
   alternates: { canonical: 'https://www.nordico.net.ar/terminos' },
 }
 
@@ -15,7 +16,7 @@ export default function Terminos() {
       <div className="terminos-hero">
         <div className="section-eyebrow">// Legal</div>
         <h1 className="terminos-title">Términos y<br /><span>Condiciones</span></h1>
-        <p className="terminos-subtitle">Última actualización: 30 de mayo de 2026</p>
+        <p className="terminos-subtitle">Última actualización: junio de 2026</p>
       </div>
 
       {/* Contenido */}
@@ -27,7 +28,7 @@ export default function Terminos() {
 
         <div className="terminos-section">
           <div className="terminos-section-title">1. Información General</div>
-          <p>Nórdico es una empresa argentina dedicada a la fabricación y comercialización de losetas atérmicas y antideslizantes para pileta, baldosas para exterior y revestimientos. El presente sitio web tiene carácter informativo y permite a los usuarios conocer nuestros productos y tomar contacto con nosotros.</p>
+          <p>Nórdico es una empresa argentina dedicada a la fabricación y comercialización de losetas atérmicas y antideslizantes para pileta, baldosas para exterior y revestimientos. El presente sitio web tiene carácter informativo y permite a los usuarios conocer nuestros productos y solicitar presupuestos.</p>
         </div>
 
         <div className="terminos-section">
@@ -37,7 +38,7 @@ export default function Terminos() {
             <li>Hacer un uso lícito, responsable y conforme a la legislación argentina vigente.</li>
             <li>No reproducir, distribuir ni modificar el contenido sin autorización expresa de Nórdico.</li>
             <li>No utilizar el sitio para fines fraudulentos, ilegales o que puedan causar daños a terceros.</li>
-            <li>Proporcionar información veraz y actualizada al completar el formulario de contacto.</li>
+            <li>Proporcionar información veraz y actualizada al completar el formulario de presupuesto.</li>
           </ul>
           <p>Nórdico se reserva el derecho de modificar, suspender o interrumpir el acceso al sitio en cualquier momento y sin previo aviso.</p>
         </div>
@@ -49,52 +50,20 @@ export default function Terminos() {
         </div>
 
         <div className="terminos-section">
-          <div className="terminos-section-title">4. Formulario de Contacto y Cotización</div>
-          <p>El formulario de contacto disponible en este sitio permite a los usuarios realizar consultas o solicitar información sobre los productos de Nórdico. Al completar el formulario, usted:</p>
+          <div className="terminos-section-title">4. Formulario de Presupuesto</div>
+          <p>El formulario de presupuesto disponible en este sitio permite a los usuarios seleccionar productos y solicitar una cotización personalizada. Al completar el formulario, usted:</p>
           <ul>
             <li>Garantiza que la información provista es verdadera y actualizada.</li>
-            <li>Autoriza a Nórdico a contactarse con usted a través de los datos suministrados.</li>
+            <li>Autoriza a Nórdico a contactarse con usted por WhatsApp u otros medios a través de los datos suministrados.</li>
             <li>Comprende que el envío del formulario no genera ningún contrato ni compromiso comercial entre las partes.</li>
           </ul>
-          <p>Nórdico responderá las consultas en un plazo razonable, sin que ello implique obligación de respuesta inmediata.</p>
+          <p>Una vez enviado el formulario, Nórdico iniciará el contacto a través de WhatsApp para continuar con la atención de su solicitud.</p>
         </div>
 
         <div className="terminos-section">
-          <div className="terminos-section-title">5. Política de Privacidad y Protección de Datos Personales</div>
+          <div className="terminos-section-title">5. Privacidad y Protección de Datos Personales</div>
           <p>Nórdico se compromete a proteger la privacidad de los usuarios conforme a lo establecido por la Ley N° 25.326 de Protección de los Datos Personales de la República Argentina y sus normas complementarias.</p>
-
-          <div className="terminos-subsection">
-            <div className="terminos-subsection-title">5.1 Datos recopilados</div>
-            <p>A través del formulario de contacto, Nórdico puede recopilar los siguientes datos personales:</p>
-            <ul>
-              <li>Nombre y apellido</li>
-              <li>Correo electrónico</li>
-              <li>Número de teléfono</li>
-              <li>Provincia</li>
-              <li>Consulta o mensaje ingresado</li>
-            </ul>
-          </div>
-
-          <div className="terminos-subsection">
-            <div className="terminos-subsection-title">5.2 Finalidad del tratamiento</div>
-            <p>Los datos personales recopilados serán utilizados exclusivamente para:</p>
-            <ul>
-              <li>Responder las consultas o solicitudes de cotización efectuadas por el usuario.</li>
-              <li>Brindar información sobre productos y servicios de Nórdico.</li>
-              <li>Mejorar la atención al cliente.</li>
-            </ul>
-          </div>
-
-          <div className="terminos-subsection">
-            <div className="terminos-subsection-title">5.3 Almacenamiento y seguridad</div>
-            <p>Nórdico adopta las medidas técnicas y organizativas razonables para proteger los datos personales frente a accesos no autorizados, pérdida o alteración. Los datos no serán cedidos, vendidos ni transferidos a terceros sin el consentimiento expreso del titular, salvo obligación legal.</p>
-          </div>
-
-          <div className="terminos-subsection">
-            <div className="terminos-subsection-title">5.4 Derechos del titular</div>
-            <p>El titular de los datos personales tiene derecho a acceder, rectificar, actualizar y solicitar la supresión de sus datos en cualquier momento, conforme al artículo 14 de la Ley N° 25.326. Para ejercer estos derechos, puede contactarnos a través del formulario de contacto del sitio.</p>
-            <p>La Dirección Nacional de Protección de Datos Personales (DNPDP) es el órgano de control competente en la materia.</p>
-          </div>
+          <p>El detalle completo sobre qué datos recopilamos, cómo los usamos, las cookies que utilizamos y los derechos del titular se encuentra en nuestra <Link href="/privacidad" style={{ color: 'var(--orange)' }}>Política de Privacidad</Link>.</p>
         </div>
 
         <div className="terminos-section">
@@ -129,7 +98,7 @@ export default function Terminos() {
 
         <div className="terminos-section">
           <div className="terminos-section-title">10. Contacto</div>
-          <p>Para consultas relacionadas con los presentes Términos y Condiciones, o para ejercer los derechos sobre sus datos personales, puede contactarse con Nórdico a través del formulario de contacto disponible en el sitio web.</p>
+          <p>Para consultas relacionadas con los presentes Términos y Condiciones, o para ejercer los derechos sobre sus datos personales, puede contactarse con Nórdico a través del formulario de presupuesto disponible en el sitio web.</p>
         </div>
 
       </div>
