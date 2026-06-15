@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
+import ScrollAnimInit from '@/components/ScrollAnimInit'
 import { StaggerTestimonials } from '@/components/ui/stagger-testimonials'
 import SectionDivider from '@/components/SectionDivider'
 import ImageAutoSlider from '@/components/ui/image-auto-slider'
@@ -29,6 +30,7 @@ export default function HomeClient() {
     return () => observer.disconnect()
   }, [])
 
+
   useEffect(() => {
     if (!statsTriggered) return
     const targets = [20, 6, 100, 6]
@@ -47,6 +49,7 @@ export default function HomeClient() {
 
   return (
     <div id="home">
+      <ScrollAnimInit />
 
       {/* Hero */}
       <div className="home-hero">
@@ -74,7 +77,7 @@ export default function HomeClient() {
       </div>
 
       {/* Stats */}
-      <div className="home-stats" ref={statsRef}>
+      <div className="home-stats" ref={statsRef} data-anim-stagger>
         <div className="stat-item">
           <div className="stat-number"><em>+</em>{statValues[0]}<em>°C</em></div>
           <div className="stat-label">Diferencias notorias de temperatura entre una loseta atermica Nordico y una convencional</div>
@@ -97,9 +100,9 @@ export default function HomeClient() {
 
       {/* Features */}
       <div className="home-features">
-        <div className="section-eyebrow">// Por qué Nordico</div>
-        <div className="section-title">Tecnología<br />que se siente.</div>
-        <div className="features-grid">
+        <div className="section-eyebrow" data-anim="fade-up">// Por qué Nordico</div>
+        <div className="section-title" data-anim="fade-up" style={{ transitionDelay: '0.1s' }}>Tecnología<br />que se siente.</div>
+        <div className="features-grid" data-anim-stagger>
           <div className="feature-card">
             <div className="feature-icon">❄</div>
             <div className="feature-title">Tecnología Térmica</div>
@@ -127,7 +130,7 @@ export default function HomeClient() {
 
       {/* Productos destacados */}
       <div className="home-products">
-        <div className="home-products-header">
+        <div className="home-products-header" data-anim="fade-up">
           <div>
             <div className="section-eyebrow">// Nuestros Modelos</div>
             <div className="section-title" style={{ fontSize: 'clamp(30px,3.5vw,48px)', marginBottom: 0 }}>
@@ -137,7 +140,7 @@ export default function HomeClient() {
           <Link className="btn-outline" href="/productos#catalogo-grid">Ver catálogo completo</Link>
         </div>
 
-        <div className="home-products-showcase">
+        <div className="home-products-showcase" data-anim-stagger>
           <Link className="showcase-featured" href="/productos#catalogo-grid" style={{ position: 'relative', overflow: 'hidden' }}>
             <Image
               src="/img/Solarium Cartoon.png"
@@ -185,7 +188,7 @@ export default function HomeClient() {
 
       {/* Reviews */}
       <div className="home-reviews">
-        <div className="home-reviews-header">
+        <div className="home-reviews-header" data-anim="fade-up">
           <div className="section-eyebrow">// Lo que dicen nuestros clientes</div>
           <div className="section-title" style={{ fontSize: 'clamp(30px,3.5vw,48px)', marginBottom: 0 }}>
             Opiniones en <span style={{ color: 'var(--orange)' }}>Google</span>
@@ -198,7 +201,7 @@ export default function HomeClient() {
 
       {/* Slider automático de trabajos */}
       <div className="home-interactive-selector">
-        <div style={{ marginBottom: '40px' }}>
+        <div style={{ marginBottom: '40px' }} data-anim="fade-up">
           <div className="section-eyebrow">// Proyectos destacados</div>
           <div className="section-title" style={{ marginBottom: 0 }}>
             CONOCÉ NUESTROS <span style={{ color: 'var(--orange)' }}>TRABAJOS</span>
@@ -211,7 +214,7 @@ export default function HomeClient() {
 
       {/* Ubicación */}
       <div className="home-map-section">
-        <div style={{ marginBottom: '32px' }}>
+        <div style={{ marginBottom: '32px' }} data-anim="fade-up">
           <div className="section-eyebrow">// Dónde encontrarnos</div>
           <div className="section-title" style={{ marginBottom: 0 }}>
             NUESTRA <span style={{ color: 'var(--orange)' }}>UBICACIÓN</span>
@@ -239,11 +242,11 @@ export default function HomeClient() {
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
           <Tiles rows={60} cols={12} tileSize="md" />
         </div>
-        <div className="home-cta-content">
+        <div className="home-cta-content" data-anim="scale">
           <div className="home-cta-title">¿Listo para<br />Transformar<br />tu <span>Pileta?</span></div>
           <div className="home-cta-sub">Pedí tu presupuesto sin compromiso. Te asesoramos en la elección del modelo ideal para tu proyecto.</div>
         </div>
-        <div className="home-cta-actions">
+        <div className="home-cta-actions" data-anim="fade-up" style={{ transitionDelay: '0.2s' }}>
           <Link className="btn-primary" href="/presupuesto" style={{ fontSize: '18px', padding: '16px 36px' }}>SOLICITAR PRESUPUESTO</Link>
         </div>
       </div>

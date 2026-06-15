@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import ScrollAnimInit from '@/components/ScrollAnimInit'
 
 export const metadata: Metadata = {
   title: 'Guía de Instalación',
@@ -38,14 +39,15 @@ const REASONS = [
 export default function Instalacion() {
   return (
     <div id="instalacion">
+      <ScrollAnimInit />
 
       {/* Hero */}
       <div className="install-hero">
-        <div className="install-hero-text">
+        <div className="install-hero-text" data-anim="fade-up">
           <h1>El Camino a tu<br />Pileta <span style={{ color: 'var(--orange)' }}>Soñada</span></h1>
           <p>Una guía técnica detallada para la correcta colocación de nuestras baldosas atérmicas.</p>
         </div>
-        <div className="install-hero-img" style={{ outline: '6px solid rgba(232,82,26,0.15)', outlineOffset: '4px' }}>
+        <div className="install-hero-img" style={{ outline: '6px solid rgba(232,82,26,0.15)', outlineOffset: '4px' }} data-anim="fade-in">
           <Image
             src="/img/Capas.png"
             alt="Tecnología en capas de las losetas atérmicas Nordico"
@@ -59,8 +61,8 @@ export default function Instalacion() {
 
       {/* Pasos */}
       <div className="steps-section">
-        <h2>// PROCESO DE INSTALACIÓN EN 6 PASOS</h2>
-        <div className="steps-grid">
+        <h2 data-anim="fade-up">// PROCESO DE INSTALACIÓN EN 6 PASOS</h2>
+        <div className="steps-grid" data-anim-stagger>
           {STEPS.map(step => (
             <div className="step-card" key={step.num}>
               <div className="step-number">{step.num}</div>
@@ -72,7 +74,7 @@ export default function Instalacion() {
       </div>
 
       {/* Checklist */}
-      <div className="checklist-card">
+      <div className="checklist-card" data-anim="fade-up">
         <div>
           <h3>¿POR QUÉ ELEGIRNOS?</h3>
           <div className="sub">// 8 RAZONES ;)</div>

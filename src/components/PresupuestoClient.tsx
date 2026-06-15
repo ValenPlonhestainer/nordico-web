@@ -195,6 +195,48 @@ export default function PresupuestoClient() {
       .map(p => `${p.name} × ${selectedProducts[p.key]}`)
       .join(', ')
 
+    // Leer datos de la pileta desde la calculadora (si el usuario la usó)
+    let poolLines: string[] = []
+    try {
+      const raw = sessionStorage.getItem('nordico-calculadora-v1')
+      if (raw) {
+        const calc = JSON.parse(raw) as {
+          shape?: string; length?: number; width?: number
+          length2?: number; width2?: number
+          borderKey?: string; romanoKey?: string
+          solariums?: { w: number; h: number }[]
+        }
+        if (calc.shape && calc.length && calc.width) {
+          const SHAPE_LABELS: Record<string, string> = {
+            rect: 'Rectangular',
+            lshape: 'En L',
+            arco: 'Arco Romano',
+          }
+          const BORDER_LABELS: Record<string, string> = {
+            ballena5050: 'Borde Ballena 50×50',
+            ballena4050: 'Borde Ballena 40×50',
+            recto: 'Borde L 50×50',
+            bordeballenal50x50: 'Borde Ballena L 50×50',
+          }
+          const m = (v: number) => `${v}m`
+          poolLines.push('🏊 *Datos de la pileta (calculadora)*')
+          const shapeLabel = SHAPE_LABELS[calc.shape] ?? calc.shape
+          const romanoSuffix = calc.shape === 'arco' && calc.romanoKey ? ` — radio ${calc.romanoKey}` : ''
+          poolLines.push(`Forma: ${shapeLabel}${romanoSuffix}`)
+          if (calc.shape === 'lshape' && calc.length2 && calc.width2) {
+            poolLines.push(`Medidas: ${m(calc.length)} × ${m(calc.width)} (recorte: ${m(calc.length2)} × ${m(calc.width2)})`)
+          } else {
+            poolLines.push(`Medidas: ${m(calc.length)} × ${m(calc.width)}`)
+          }
+          if (calc.borderKey) poolLines.push(`Borde: ${BORDER_LABELS[calc.borderKey] ?? calc.borderKey}`)
+          if (calc.solariums && calc.solariums.length > 0) {
+            const totalM2 = calc.solariums.reduce((acc, s) => acc + s.w * s.h, 0)
+            poolLines.push(`Solarium: ${calc.solariums.length} zona${calc.solariums.length > 1 ? 's' : ''} (${totalM2.toFixed(1)}m²)`)
+          }
+        }
+      }
+    } catch { /* sessionStorage no disponible */ }
+
     fetch('https://script.google.com/macros/s/AKfycbyk-4vejWOToT7EkLcHPgUFlv11aRBwWBM_eSQEe_3xG9hD8lHINI_09Ic6i14hM4k/exec', {
       method: 'POST',
       mode: 'no-cors',
@@ -218,6 +260,10 @@ export default function PresupuestoClient() {
     if (email) lines.push(`Email: ${email}`)
     if (phone) lines.push(`Teléfono: ${phone}`)
     lines.push(`Provincia: ${province}`)
+    if (poolLines.length > 0) {
+      lines.push('')
+      poolLines.forEach(l => lines.push(l))
+    }
     lines.push('')
     lines.push('🪨 *Detalle del presupuesto*')
     selectedEntries.forEach(p => {

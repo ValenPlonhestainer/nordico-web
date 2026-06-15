@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useProducts } from '@/hooks/useProducts'
@@ -93,6 +93,21 @@ export default function ProductosClient() {
   const baldosas = useBaldosas()
   const [lightbox, setLightbox] = useState<{ images: string[]; alt: string; index: number } | null>(null)
 
+  useEffect(() => {
+    const targets = document.querySelectorAll<Element>('[data-anim]:not(.anim-visible), [data-anim-stagger]:not(.anim-visible)')
+    if (targets.length === 0) return
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('anim-visible')
+          observer.unobserve(entry.target)
+        }
+      })
+    }, { threshold: 0.12 })
+    targets.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [products.length, baldosas.length])
+
   return (
     <div id="catalogo">
 
@@ -134,7 +149,7 @@ export default function ProductosClient() {
       <SectionDivider />
 
       {/* Catálogo: Losetas Atérmicas */}
-      <div className="catalog-header" id="catalogo-grid">
+      <div className="catalog-header" id="catalogo-grid" data-anim="fade-up">
         <div>
           <div className="section-eyebrow">// Losetas Atérmicas</div>
           <div className="catalog-header-title">CATÁLOGO DE LOSETAS</div>
@@ -143,7 +158,7 @@ export default function ProductosClient() {
           </div>
         </div>
       </div>
-      <div className="products-grid">
+      <div className="products-grid" data-anim="fade-up">
         {products.map(product => (
           <div className="product-card" key={product.key} id={`producto-${product.key}`} data-product-key={product.key}>
             <div className="product-thumb" style={{ position: 'relative' }}>
@@ -179,7 +194,7 @@ export default function ProductosClient() {
       <SectionDivider />
 
       {/* Catálogo: Baldosas */}
-      <div className="catalog-header" id="catalogo-baldosas">
+      <div className="catalog-header" id="catalogo-baldosas" data-anim="fade-up">
         <div>
           <div className="section-eyebrow">// Baldosas</div>
           <div className="catalog-header-title">CATÁLOGO DE BALDOSAS</div>
@@ -193,7 +208,7 @@ export default function ProductosClient() {
         </div>
       </div>
       {baldosas.length > 0 ? (
-        <div className="products-grid">
+        <div className="products-grid" data-anim="fade-up">
           {baldosas.map(product => {
             return (
               <div className="product-card" key={product.key} data-product-key={product.key}>
@@ -228,7 +243,7 @@ export default function ProductosClient() {
           })}
         </div>
       ) : (
-        <div className="catalog-coming-soon">
+        <div className="catalog-coming-soon" data-anim="fade-up">
           <div className="coming-soon-badge">En desarrollo</div>
           <div className="coming-soon-title">PRÓXIMAMENTE</div>
           <div className="coming-soon-text">Estamos preparando nuestra línea de baldosas. Pronto vas a poder ver todos los modelos disponibles.</div>
@@ -238,14 +253,14 @@ export default function ProductosClient() {
       <SectionDivider />
 
       {/* Catálogo: Revestimientos */}
-      <div className="catalog-header" id="catalogo-revestimientos">
+      <div className="catalog-header" id="catalogo-revestimientos" data-anim="fade-up">
         <div>
           <div className="section-eyebrow">// Revestimientos</div>
           <div className="catalog-header-title">CATÁLOGO DE REVESTIMIENTOS</div>
 
         </div>
       </div>
-      <div className="catalog-coming-soon">
+      <div className="catalog-coming-soon" data-anim="fade-up">
         <div className="coming-soon-badge">En desarrollo</div>
         <div className="coming-soon-title">PRÓXIMAMENTE</div>
         <div className="coming-soon-text">Estamos preparando nuestra línea de revestimientos. Pronto vas a poder ver todos los modelos disponibles.</div>
