@@ -219,7 +219,7 @@ export default function PresupuestoClient() {
             bordeballenal50x50: 'Borde Ballena L 50×50',
           }
           const m = (v: number) => `${v}m`
-          poolLines.push('🏊 *Datos de la pileta*')
+          poolLines.push('*Datos de la pileta*')
           const shapeLabel = SHAPE_LABELS[calc.shape] ?? calc.shape
           const romanoSuffix = calc.shape === 'arco' && calc.romanoKey ? ` — radio ${calc.romanoKey}` : ''
           poolLines.push(`Forma: ${shapeLabel}${romanoSuffix}`)
@@ -252,20 +252,20 @@ export default function PresupuestoClient() {
     }).catch(() => {})
 
     const lines: string[] = []
-    lines.push('👋 Hola! Me interesa este presupuesto')
+    lines.push('Hola! Me interesa este presupuesto')
     lines.push('*SOLICITUD DE PRESUPUESTO — NORDICO*')
     lines.push('')
-    lines.push('📋 *Datos del cliente*')
+    lines.push('*Datos del cliente*')
     if (name)  lines.push(`Nombre: ${name}`)
     if (email) lines.push(`Email: ${email}`)
-    if (phone) lines.push(`Teléfono: ${phone}`)
+    if (phone) lines.push(`Telefono: ${phone}`)
     lines.push(`Provincia: ${province}`)
     if (poolLines.length > 0) {
       lines.push('')
       poolLines.forEach(l => lines.push(l))
     }
     lines.push('')
-    lines.push('📦 *Detalle del presupuesto*')
+    lines.push('*Detalle del presupuesto*')
     selectedEntries.forEach(p => {
       const q = selectedProducts[p.key]
       lines.push(`${p.name}: ${q} ${q === 1 ? 'unidad' : 'unidades'} — ${fmt(q * p.priceUnit)}`)
@@ -276,7 +276,7 @@ export default function PresupuestoClient() {
     })
     if (cashDiscount) lines.push(`Descuento efectivo (5%): − ${fmt(discount)}`)
     lines.push('')
-    lines.push(`💰 *TOTAL: ${fmt(total)}*`)
+    lines.push(`*TOTAL: ${fmt(total)}*`)
 
     const text = encodeURIComponent(lines.join('\n'))
     window.open(`https://wa.me/5491163716566?text=${text}`, '_blank')
